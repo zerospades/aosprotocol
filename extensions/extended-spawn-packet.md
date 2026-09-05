@@ -5,8 +5,8 @@ packet has no room for. Version 1 carries two: *silence*, players that exist in
 the world and are rendered like any other player but take no part in the
 presentation *other* clients build around their player list — scoreboard, player
 counts, presence notices, kill feed — and a *colour* that marks a player out in
-the world in place of their team's. What a silent player's own client shows them
-is untouched.
+the world in place of their team's. What silence leaves alone is the silent
+player's own client.
 
 The base protocol has a single notion of a player: a client only knows about a
 player because it received an [Existing Player](../protocol075.md#existing-player)
@@ -42,7 +42,7 @@ client joins, and any change made while the game runs.
 
 ## Flags
 
-Both sub-packets carry the same one byte mask.
+Sub packets 0 and 1 carry the same one byte mask.
 
 | Bit | Name             | Meaning                                                                                                                                              |
 |-----|------------------|------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -67,7 +67,11 @@ announces only the departure of a player it never announced is not.
 A mask of `0` means the player is presented normally. That is how a player is
 un-silenced — there is no separate clear sub-packet — and it is what a server
 sends to reveal an actor that was silent until then, an ambushing NPC turning
-into a scoreboard participant for example.
+into a scoreboard participant for example. Clearing the mask does not discard a
+colour bound to the id: it stops the client using it, and the colour is still
+there if the bit comes back. Only a spawn,
+[Player Left](../protocol075.md#player-left) or
+[Map Start](../protocol075.md#map-start-075) discards it.
 
 Every hiding bit — `HIDE_ROSTER`, `HIDE_PRESENCE`, `HIDE_KILLFEED`, `NO_STATS` —
 describes what a client shows about **another** player. None of them changes
@@ -80,10 +84,7 @@ away from the player it is set on.
 
 `CUSTOM_COLOR` is the exception to that rule, and it is not one of the hiding
 bits: it withholds nothing, it changes an appearance, and a player marked out by
-colour is marked out on their own screen too. A client that ignored its own
-colour would show its player as a team member to themselves and as something
-else to everybody else, which is the disagreement the rest of this extension
-exists to avoid.
+colour is marked out on their own screen too.
 
 ## Colour
 
@@ -100,11 +101,12 @@ as a sentinel here would cost servers the one colour nothing else can express,
 so the flag says whether to override and the bytes say only what to.
 
 **A client that has no colour for an id draws the team colour, even with
-`CUSTOM_COLOR` set.** This is the degradation the mask has: a flag that arrives
-before the colour it refers to, or a client that missed the colour, produces an
-ordinary team-coloured player rather than a black one. It also means a server may
-set the bit and the colour in either order without producing a wrong frame in
-between.
+`CUSTOM_COLOR` set.** The colour degrades the way the mask does: a flag that
+arrives before the colour it refers to, or a client that missed the colour,
+produces an ordinary team-coloured player rather than a black one. It also means
+a server may set the bit and the colour in either order — setting the bit first
+costs at most a frame in the team colour, and nothing that cannot be taken
+back.
 
 The override replaces the team colour wherever the client draws the player from
 it — the player model, the tool or weapon in their hands, their corpse, their
@@ -149,10 +151,8 @@ to the end of the packet. The packet therefore has one layout rather than two,
 and the flag decides what the bytes mean: with `CUSTOM_COLOR` set the colour is
 bound to the id, and with it clear the bytes are ignored and any colour left on
 the id is cleared — a server that is not overriding the colour sends `0, 0, 0`
-and has said nothing. A spawn is a clean slate for both properties.
-
-A mask of `0` spawns an ordinary player and clears any flags left on the id, so
-this sub-packet can serve as the only spawn packet a server sends to a client
+and has said nothing. A spawn is a clean slate for both properties, which is what
+lets this sub-packet serve as the only spawn packet a server sends to a client
 that supports the extension.
 
 ## Sub ID 1: Set Flags

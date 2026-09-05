@@ -19,53 +19,23 @@ The extension id, the number carried by `ExtInfo`, is `4`; the packet id is
 
 | Sub ID | Name        | Direction         | Size |
 |--------|-------------|-------------------|------|
-| 0      | Config      | Server -> Client  | 3    |
-| 1      | Light       | Client <-> Server | 4    |
-| 2      | Light State | Server -> Client  | 2+   |
+| 0      | Light       | Client <-> Server | 4    |
+| 1      | Light State | Server -> Client  | 2+   |
 
 A client sends one of these and no other: a **Light** to ask for its own light on
-or off. Config and Light State are the server speaking, and a server that
-receives either from a client drops it. What a client sends is a request; the
-server decides whether the light comes on and tells everybody it chose to tell.
+or off. Light State is the server speaking, and a server that receives one from a
+client drops it. What a client sends is a request; the server decides whether the
+light comes on and tells everybody it chose to tell.
 
-## Sub ID 0: Config
+There is no configuration sub-packet: negotiating the extension is the whole of
+the negotiation. Nothing describes the beam, whose reach, width and colour are
+fixed by this specification, see [What the beam is](#what-the-beam-is); and
+nothing describes who may switch one on, because a refusal is already expressible
+— the server does not relay the Light, the way it may decline a
+[Block Action](../protocol075.md#block-action). A permission flag would add no
+capability, only an announcement of one.
 
-The server says whether clients may work their own lights. The flag is a policy
-switch, not a data gate: it decides who may ask, never who may see. A client with
-it clear still renders every light the server tells it about, and lights the
-server switches on itself are unaffected.
-
-| Field Name    | Field Type | Example | Notes                                 |
-|---------------|------------|---------|---------------------------------------|
-| Packet ID     | UByte      | `68`    | Always `68`.                          |
-| Sub Packet ID | UByte      | `0`     | Always `0` for this sub-packet.       |
-| Flags         | UByte      | `0b1`   | See below.                            |
-
-| Bit | Name         | Meaning                                                     |
-|-----|--------------|-------------------------------------------------------------|
-| 0   | `FLASHLIGHT` | Client may ask for its own light, with a Light packet.       |
-| 1-7 | reserved     | Must be `0`. Clients must ignore unknown bits.               |
-
-Nothing here describes the beam. Its reach, its width and its colour are fixed by
-this specification, see [What the beam is](#what-the-beam-is), and no packet
-carries them: every light on every server is the same light, and the only thing
-anybody negotiates is who may switch one on.
-
-**Until this packet arrives the client asks for nothing.** With no bitmask yet
-received the feature is off, exactly as if the server had sent one with
-`FLASHLIGHT` clear.
-
-The server MAY send this at any time and the client applies it immediately — on a
-map rotation, or when night falls in a game mode that has one. When `FLASHLIGHT`
-clears, a client that had its light on stops asking for it and the server sends
-the Light packets that turn the lights off; a client does not extinguish itself
-on the flag alone, because the state on everybody else's screen is the server's
-to change.
-
-A Light already in flight when the config changes is simply dropped by the
-server. This is not a protocol violation and needs no special handling.
-
-## Sub ID 1: Light
+## Sub ID 0: Light
 
 Turns one player's light on or off. A client sends it to ask for its own; the
 server relays the outcome to the clients of its choice. The server may also
@@ -75,7 +45,7 @@ admin dousing somebody, a scripted blackout.
 | Field Name    | Field Type | Example | Notes                                              |
 |---------------|------------|---------|-----------------------------------------------------|
 | Packet ID     | UByte      | `68`    | Always `68`.                                        |
-| Sub Packet ID | UByte      | `1`     | Always `1` for this sub-packet.                     |
+| Sub Packet ID | UByte      | `0`     | Always `0` for this sub-packet.                     |
 | Player ID     | UByte      | `0`     | On relay, the player whose light this is. Ignored on the client -> server direction; the server fills it in authoritatively. |
 | State         | UByte      | `1`     | `0` off, `1` on. See below.                         |
 
@@ -92,15 +62,14 @@ told, and telling nobody is a decision too. A client whose request is refused
 learns so by never receiving the relay.
 
 A dead player carries no light. The client turns its own off when it dies and
-does not ask again until it spawns, and the server drops a Light from a dead
-player the way it drops one sent with `FLASHLIGHT` clear.
+does not ask again until it spawns.
 
 Server handling of a client -> server Light:
 
 * Whatever a client puts in Player ID is ignored: the server fills it in from the
   connection the packet arrived on.
 
-## Sub ID 2: Light State
+## Sub ID 1: Light State
 
 Every light at once, for a client that has just arrived and knows none of them.
 The server sends it after [State Data](../protocol075.md#state-data), alongside
@@ -110,7 +79,7 @@ the players it describes.
 | Field Name    | Field Type | Example  | Notes                                            |
 |---------------|------------|----------|---------------------------------------------------|
 | Packet ID     | UByte      | `68`     | Always `68`.                                      |
-| Sub Packet ID | UByte      | `2`      | Always `2` for this sub-packet.                   |
+| Sub Packet ID | UByte      | `1`      | Always `1` for this sub-packet.                   |
 | States        | UByte[]    | `0b1010` | Bitmask, one bit per player id, the remaining bytes of the packet. |
 
 Bit `n` of byte `n / 8` is the light of player id `n`, so byte 0 carries ids
@@ -187,7 +156,7 @@ so in the version byte and the whole server moves together.
 Version 1 has one beam, and this section is only about the room left for a
 version that has more than one. A focused light — narrow the cone and it throws
 further, widen it and it floods the ground at your feet — is the obvious thing to
-want next, and `2`..`255` of the [State](#sub-id-1-light) byte are held for it.
+want next, and `2`..`255` of the [State](#sub-id-0-light) byte are held for it.
 Nothing below is implemented, and a version 1 client that meets one of these
 values draws the standard beam.
 
@@ -221,7 +190,7 @@ its own where version 1 needs none — sending where the ring settled rather tha
 every position it passed through, or a limit measured in updates per second
 rather than toggles.
 
-[Light State](#sub-id-2-light-state) carries one bit per player and cannot say
+[Light State](#sub-id-1-light-state) carries one bit per player and cannot say
 where a light is focused. A version that needs more than lit-or-not for a joining
 client adds a sub-packet for it rather than widening that bitmask, which is why
 the sub-packet ids are cheap and the bitmask stays a bitmask.

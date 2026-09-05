@@ -1,16 +1,17 @@
-# Silent Player
+# Extended Spawn Packet
 
-Lets the server mark player ids as *silent*: players that exist in the world and
-are rendered like any other player, but that take no part in the presentation
-*other* clients build around their player list — scoreboard, player counts,
-presence notices, kill feed. What a silent player's own client shows them is
-untouched.
+Carries per-player-id properties the base [Create Player](../protocol075.md#create-player)
+packet has no room for. Version 1 spends one byte of them on *silence*: players
+that exist in the world and are rendered like any other player, but that take no
+part in the presentation *other* clients build around their player list —
+scoreboard, player counts, presence notices, kill feed. What a silent player's
+own client shows them is untouched.
 
 The base protocol has a single notion of a player: a client only knows about a
 player because it received an [Existing Player](../protocol075.md#existing-player)
 or [Create Player](../protocol075.md#create-player) packet for it, and that same
 list drives the scoreboard and every player-related notification. This extension
-adds a per-player-id presentation mask instead of a second entity concept, so
+extends the spawn packet instead of adding a second entity concept, so
 server-side actors (NPCs, RPG mobs, training dummies) can spawn, act, die and
 disappear as loudly or as quietly as the server wants, and a server can move a
 real player in or out of the game unannounced.
@@ -26,15 +27,14 @@ id` as described in [Extension IDs](extension.md#extension-ids).
 
 ### Sub Packets:
 
-| Sub ID | Name                | Direction        | Size          |
-|--------|---------------------|------------------|---------------|
-| 0      | Create Silent Player| Server -> Client | `18+`         |
-| 1      | Set Flags           | Server -> Client | `2+2*entries` |
+| Sub ID | Name                  | Direction        | Size          |
+|--------|-----------------------|------------------|---------------|
+| 0      | Extended Create Player| Server -> Client | `18+`         |
+| 1      | Set Flags             | Server -> Client | `2+2*entries` |
 
-Sub packet 0 replaces [Create Player](../protocol075.md#create-player) for a
-silent player: it carries the same spawn data plus the flags, so a spawn stays
-one packet and cannot be misread by a client that has not been told about the
-flags yet. Sub packet 1 covers everything a spawn cannot: the players already in
+Sub packet 0 replaces [Create Player](../protocol075.md#create-player): it
+carries the same spawn data plus the flags, so a spawn stays one packet and
+cannot be misread by a client that has not been told about the flags yet. Sub packet 1 covers everything a spawn cannot: the players already in
 the world when a client joins, and any change of presentation while the game
 runs.
 
@@ -72,7 +72,7 @@ their own kills and deaths in the kill feed and still keeps their own
 statistics. A client is never silent to itself, and nothing this extension can
 set takes information away from the player it is set on.
 
-## Sub ID 0: Create Silent Player
+## Sub ID 0: Extended Create Player
 
 Spawns a player and sets its flags in the same packet. Sent instead of
 [Create Player](../protocol075.md#create-player), on initial spawn and on every
@@ -142,7 +142,7 @@ presented, with immediate effect and no ordering constraint.
 Flags are bound to the **player id**, not to the player occupying it. They apply
 until one of:
 
-* a Set Flags or Create Silent Player packet for the same id replaces them —
+* a Set Flags or Extended Create Player packet for the same id replaces them —
   a plain [Create Player](../protocol075.md#create-player) does not;
 * the client receives [Player Left](../protocol075.md#player-left) for that id —
   the flags apply to that packet first, so a silent player leaves silently, and

@@ -1,9 +1,10 @@
 # Silent Player
 
 Lets the server mark player ids as *silent*: players that exist in the world and
-are rendered like any other player, but that take no part in the presentation the
-client builds around its player list — scoreboard, player counts, presence
-notices, kill feed.
+are rendered like any other player, but that take no part in the presentation
+*other* clients build around their player list — scoreboard, player counts,
+presence notices, kill feed. What a silent player's own client shows them is
+untouched.
 
 The base protocol has a single notion of a player: a client only knows about a
 player because it received an [Existing Player](../protocol075.md#existing-player)
@@ -62,6 +63,14 @@ A mask of `0` means the player is presented normally. That is how a player is
 un-silenced — there is no separate clear sub-packet — and it is what a server
 sends to reveal an actor that was silent until then, an ambushing NPC turning
 into a scoreboard participant for example.
+
+Every bit describes what a client shows about **another** player. None of them
+changes what a player is shown about themselves: flags for the client's own
+player id are ignored, so a silenced player still sees their own row on the
+scoreboard, still counts towards the totals their client displays, still reads
+their own kills and deaths in the kill feed and still keeps their own
+statistics. A client is never silent to itself, and nothing this extension can
+set takes information away from the player it is set on.
 
 ## Sub ID 0: Create Silent Player
 
@@ -142,8 +151,7 @@ until one of:
   resets every id to `0`.
 
 Defaulting to `0` means a missed or late Set Flags degrades into an ordinary,
-visible player rather than into an invisible one. Flags for the client's own
-player id are ignored: a client is never silent to itself.
+visible player rather than into an invisible one.
 
 ### Notes
 

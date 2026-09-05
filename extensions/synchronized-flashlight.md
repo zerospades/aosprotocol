@@ -1,4 +1,4 @@
-# Synchronous Flashlight
+# Synchronized Flashlight
 
 A light a player carries and everybody sees. The point of the extension is the
 second half: a flashlight only one client draws is a lamp in a mirror, useful to

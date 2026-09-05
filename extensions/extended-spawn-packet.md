@@ -32,7 +32,7 @@ id` as described in [Extension IDs](extension.md#extension-ids).
 |--------|-----------------------|------------------|---------------|
 | 0      | Extended Create Player| Server -> Client | `21+`         |
 | 1      | Set Flags             | Server -> Client | `2+2*entries` |
-| 2      | Set Colour            | Server -> Client | `2+4*entries` |
+| 2      | Set Player Colour     | Server -> Client | `2+4*entries` |
 
 Sub packet 0 replaces [Create Player](../protocol075.md#create-player): it
 carries the same spawn data plus the properties, so a spawn stays one packet and
@@ -90,8 +90,11 @@ colour is marked out on their own screen too.
 
 A colour is three bytes, written **blue, green, red**, the order the base
 protocol uses in [Set Colour](../protocol075.md#set-colour) and
-[Fog Colour](../protocol075.md#fog-colour). Like the mask, a colour is bound to
-the player id and outlives the player occupying it.
+[State Data](../protocol075.md#state-data). Like the mask, a colour is bound to
+the player id and outlives the player occupying it. It is the colour the player
+is drawn in and nothing else: the block in their hand keeps the colour the base
+[Set Colour](../protocol075.md#set-colour) packet gives it, which `CUSTOM_COLOR`
+does not touch.
 
 `CUSTOM_COLOR` is what switches the override on; the colour bytes never carry
 that decision themselves. The base protocol has no value meaning *no colour* —
@@ -136,7 +139,7 @@ respawn, to clients that negotiated this extension.
 | Blue          | UByte        | `160`    | See [Colour](#colour).                            |
 | Green         | UByte        | `32`     | See [Colour](#colour).                            |
 | Red           | UByte        | `200`    | See [Colour](#colour).                            |
-| Name          | CP437 String | `Wolf`   | As in Create Player, same encoding, not `\0` terminated. |
+| Name          | CP437 String | `Wolf`   | As in Create Player, same encoding, running to the end of the packet. |
 
 Everything shared with Create Player behaves exactly as it does there, including
 the spawn height adjustment clients apply; the additions are Flags and the
@@ -146,8 +149,8 @@ client considers the player an ordinary participant, or draws them in the wrong
 colour.
 
 The three colour bytes are always present, whether or not `CUSTOM_COLOR` is set,
-and they sit before the Name because the name has no length of its own and runs
-to the end of the packet. The packet therefore has one layout rather than two,
+and they sit before the Name, which has no length of its own and runs to the end
+of the packet. The packet therefore has one layout rather than two,
 and the flag decides what the bytes mean: with `CUSTOM_COLOR` set the colour is
 bound to the id, and with it clear the bytes are ignored and any colour left on
 the id is cleared — a server that is not overriding the colour sends `0, 0, 0`
@@ -172,16 +175,18 @@ Sets the flags of one or more player ids.
 | Player ID  | UByte      | `254`    | The player the flags apply to. |
 | Flags      | UByte      | `0b1011` | See [Flags](#flags).           |
 
-The entries occupy the remaining bytes of the packet; their count is implied by
-the packet length, exactly as for the [ExtInfo](extension.md#extinfo-packet) entries. A
-packet with no entry carries no information and should not be sent; a client that
-receives one ignores it. If the same id appears twice, the last entry wins.
-Servers should keep a packet within the 255 byte budget the base protocol works
-with (126 entries) and split larger updates over several packets.
+The entries occupy the remaining bytes of the packet and carry no count of their
+own: how many there are is the packet length. A packet with no entry carries no
+information and should not be sent; a client that receives one ignores it. If the
+same id appears twice, the last entry wins. Servers should keep a packet to 255
+bytes (126 entries) and split larger updates over several packets — the base
+protocol sets no such limit, but nothing in it needs a bigger one and small
+packets are what its implementations expect.
 
 The flags of an id **must** reach the client before the
-[Existing Player](../protocol075.md#existing-player) packet that introduces it, on
-the same reliable ordered channel. A client that learns about the player first has
+[Existing Player](../protocol075.md#existing-player) or
+[Short Player Data](../protocol075.md#short-player-data) packet that introduces
+it, on the same reliable ordered channel. A client that learns about the player first has
 already emitted the join notification by the time the flags arrive, and cannot
 take it back. This is why the sub-packet carries a list: when a client joins, one
 Set Flags packet naming every silent id precedes the whole Existing Player flood,
@@ -191,18 +196,20 @@ silent players the server runs.
 Sent during the game, the packet simply changes how an already known player is
 presented, with immediate effect and no ordering constraint.
 
-## Sub ID 2: Set Colour
+## Sub ID 2: Set Player Colour
 
 Sets the colour of one or more player ids, as [Set Flags](#sub-id-1-set-flags)
-sets their flags.
+sets their flags. Named for the player because the base protocol already has a
+[Set Colour](../protocol075.md#set-colour), which is the colour of a held block
+and a different thing entirely.
 
 | Field Name    | Field Type       | Example | Notes                                     |
 |---------------|------------------|---------|-------------------------------------------|
 | Packet ID     | UByte            | `67`    | Always `67`.                              |
 | Sub Packet ID | UByte            | `2`     | Always `2` for this sub-packet.           |
-| Entries       | SetColourEntry[] |         | At least one, see below.                  |
+| Entries       | SetPlayerColourEntry[] | | At least one, see below.             |
 
-**SetColourEntry** (4 bytes)
+**SetPlayerColourEntry** (4 bytes)
 
 | Field Name | Field Type | Example | Notes                           |
 |------------|------------|---------|---------------------------------|
@@ -212,8 +219,7 @@ sets their flags.
 | Red        | UByte      | `200`   | See [Colour](#colour).          |
 
 The entries fill the rest of the packet exactly as Set Flags' do, the last entry
-for an id wins, and a packet holds at most 63 of them inside the same 255 byte
-budget. Setting a colour does not set `CUSTOM_COLOR`: the two travel separately
+for an id wins, and 63 of them fit in the same 255 bytes. Setting a colour does not set `CUSTOM_COLOR`: the two travel separately
 and a client applies whichever it has, so a colour sent to an id whose flag is
 clear is simply held until the flag is set, and the flag alone leaves the player
 team-coloured.
@@ -223,7 +229,7 @@ because that entry is two bytes and its count is read from the packet length. A
 mask change is also far commoner than a colour change — colours are set at spawn
 and rarely again — so the two packets keep each other small.
 
-Set Colour has no ordering constraint of its own: unlike a mask, a colour that
+Set Player Colour has no ordering constraint of its own: unlike a mask, a colour that
 arrives late costs a frame drawn in the team colour and nothing that cannot be
 taken back. A server catching a joining client up still sends it alongside the
 Set Flags packet, before the [Existing Player](../protocol075.md#existing-player)
@@ -234,7 +240,7 @@ flood, so the client's first frame is right.
 Flags and colour are bound to the **player id**, not to the player occupying it.
 They apply until one of:
 
-* a Set Flags, Set Colour or Extended Create Player packet for the same id
+* a Set Flags, Set Player Colour or Extended Create Player packet for the same id
   replaces them — a plain [Create Player](../protocol075.md#create-player) does
   not, and each of the three replaces only what it carries;
 * the client receives [Player Left](../protocol075.md#player-left) for that id —
@@ -244,8 +250,8 @@ They apply until one of:
   resets every id the same way.
 
 Defaulting to `0` means a missed or late Set Flags degrades into an ordinary,
-visible player rather than into an invisible one, and a missed Set Colour into a
-team-coloured one rather than a black one.
+visible player rather than into an invisible one, and a missed Set Player Colour
+into a team-coloured one rather than a black one.
 
 ### Notes
 

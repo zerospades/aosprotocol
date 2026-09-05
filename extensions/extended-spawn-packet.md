@@ -1,11 +1,12 @@
 # Extended Spawn Packet
 
 Carries per-player-id properties the base [Create Player](../protocol075.md#create-player)
-packet has no room for. Version 1 spends one byte of them on *silence*: players
-that exist in the world and are rendered like any other player, but that take no
-part in the presentation *other* clients build around their player list —
-scoreboard, player counts, presence notices, kill feed. What a silent player's
-own client shows them is untouched.
+packet has no room for. Version 1 carries two: *silence*, players that exist in
+the world and are rendered like any other player but take no part in the
+presentation *other* clients build around their player list — scoreboard, player
+counts, presence notices, kill feed — and a *colour* that marks a player out in
+the world in place of their team's. What a silent player's own client shows them
+is untouched.
 
 The base protocol has a single notion of a player: a client only knows about a
 player because it received an [Existing Player](../protocol075.md#existing-player)
@@ -29,14 +30,15 @@ id` as described in [Extension IDs](extension.md#extension-ids).
 
 | Sub ID | Name                  | Direction        | Size          |
 |--------|-----------------------|------------------|---------------|
-| 0      | Extended Create Player| Server -> Client | `18+`         |
+| 0      | Extended Create Player| Server -> Client | `21+`         |
 | 1      | Set Flags             | Server -> Client | `2+2*entries` |
+| 2      | Set Colour            | Server -> Client | `2+4*entries` |
 
 Sub packet 0 replaces [Create Player](../protocol075.md#create-player): it
-carries the same spawn data plus the flags, so a spawn stays one packet and
-cannot be misread by a client that has not been told about the flags yet. Sub packet 1 covers everything a spawn cannot: the players already in
-the world when a client joins, and any change of presentation while the game
-runs.
+carries the same spawn data plus the properties, so a spawn stays one packet and
+cannot be misread by a client that has not been told about them yet. Sub packets
+1 and 2 cover everything a spawn cannot: the players already in the world when a
+client joins, and any change made while the game runs.
 
 ## Flags
 
@@ -48,12 +50,15 @@ Both sub-packets carry the same one byte mask.
 | 1   | `HIDE_PRESENCE`  | No join, team change or leave notification is shown for this player.                                                                                 |
 | 2   | `HIDE_KILLFEED`  | No kill feed line is shown for a kill this player made or suffered.                                                                                  |
 | 3   | `NO_STATS`       | The player is ignored by client-side statistics: kill and death counters, kill streaks, and domination / revenge tracking.                            |
-| 4-7 | reserved         | Must be `0`. Clients must ignore unknown bits.                                                                                                       |
+| 4   | `CUSTOM_COLOR`   | The player is drawn in the colour bound to their id, in place of their team colour. See [Colour](#colour).                                            |
+| 5-7 | reserved         | Must be `0`. Clients must ignore unknown bits.                                                                                                       |
 
 The bits are independent, which is the point of the mask. An RPG server that
 wants its mobs to appear and vanish without a word but still wants kills
 announced sets `HIDE_ROSTER | HIDE_PRESENCE | NO_STATS` and leaves
-`HIDE_KILLFEED` clear; a fully silent actor sets all four.
+`HIDE_KILLFEED` clear; a fully silent actor sets the first four. `CUSTOM_COLOR`
+is unrelated to the others and combines with any of them: an ordinary player
+marked out by colour sets it alone.
 
 Presence is a single bit rather than one for joining and one for leaving: a
 client that announced neither arrival nor departure is coherent, and one that
@@ -64,13 +69,50 @@ un-silenced — there is no separate clear sub-packet — and it is what a serve
 sends to reveal an actor that was silent until then, an ambushing NPC turning
 into a scoreboard participant for example.
 
-Every bit describes what a client shows about **another** player. None of them
-changes what a player is shown about themselves: flags for the client's own
-player id are ignored, so a silenced player still sees their own row on the
-scoreboard, still counts towards the totals their client displays, still reads
-their own kills and deaths in the kill feed and still keeps their own
-statistics. A client is never silent to itself, and nothing this extension can
-set takes information away from the player it is set on.
+Every hiding bit — `HIDE_ROSTER`, `HIDE_PRESENCE`, `HIDE_KILLFEED`, `NO_STATS` —
+describes what a client shows about **another** player. None of them changes
+what a player is shown about themselves: those bits are ignored for the client's
+own player id, so a silenced player still sees their own row on the scoreboard,
+still counts towards the totals their client displays, still reads their own
+kills and deaths in the kill feed and still keeps their own statistics. A client
+is never silent to itself, and nothing this extension can set takes information
+away from the player it is set on.
+
+`CUSTOM_COLOR` is the exception to that rule, and it is not one of the hiding
+bits: it withholds nothing, it changes an appearance, and a player marked out by
+colour is marked out on their own screen too. A client that ignored its own
+colour would show its player as a team member to themselves and as something
+else to everybody else, which is the disagreement the rest of this extension
+exists to avoid.
+
+## Colour
+
+A colour is three bytes, written **blue, green, red**, the order the base
+protocol uses in [Set Colour](../protocol075.md#set-colour) and
+[Fog Colour](../protocol075.md#fog-colour). Like the mask, a colour is bound to
+the player id and outlives the player occupying it.
+
+`CUSTOM_COLOR` is what switches the override on; the colour bytes never carry
+that decision themselves. The base protocol has no value meaning *no colour* —
+every colour field in 0.75 is unconditionally present and always a real colour,
+and `0, 0, 0` is black, a legal block colour and a legal team colour. Spending it
+as a sentinel here would cost servers the one colour nothing else can express,
+so the flag says whether to override and the bytes say only what to.
+
+**A client that has no colour for an id draws the team colour, even with
+`CUSTOM_COLOR` set.** This is the degradation the mask has: a flag that arrives
+before the colour it refers to, or a client that missed the colour, produces an
+ordinary team-coloured player rather than a black one. It also means a server may
+set the bit and the colour in either order without producing a wrong frame in
+between.
+
+The override replaces the team colour wherever the client draws the player from
+it — the player model, the tool or weapon in their hands, their corpse, their
+tracers. It is a colour, not a team: `CUSTOM_COLOR` changes nothing about who is
+a teammate, who may be hit, or what the game mode counts, and a client must not
+infer a team from it. Where a client colours something by team id rather than by
+the player — the scoreboard row, a kill feed name — it may keep using the team
+colour; the override is about the player in the world.
 
 ## Sub ID 0: Extended Create Player
 
@@ -89,13 +131,25 @@ respawn, to clients that negotiated this extension.
 | X position    | LE Float     | `256.0`  | As in Create Player.                              |
 | Y position    | LE Float     | `256.0`  | As in Create Player.                              |
 | Z position    | LE Float     | `40.0`   | As in Create Player.                              |
+| Blue          | UByte        | `160`    | See [Colour](#colour).                            |
+| Green         | UByte        | `32`     | See [Colour](#colour).                            |
+| Red           | UByte        | `200`    | See [Colour](#colour).                            |
 | Name          | CP437 String | `Wolf`   | As in Create Player, same encoding, not `\0` terminated. |
 
-Everything after Player ID behaves exactly as in Create Player, including the
-spawn height adjustment clients apply; the only addition is Flags, which the
-client stores for the id and applies before it emits anything about the spawn.
-The packet is therefore atomic: there is no window in which the client considers
-the player an ordinary participant.
+Everything shared with Create Player behaves exactly as it does there, including
+the spawn height adjustment clients apply; the additions are Flags and the
+colour, which the client stores for the id and applies before it emits anything
+about the spawn. The packet is therefore atomic: there is no window in which the
+client considers the player an ordinary participant, or draws them in the wrong
+colour.
+
+The three colour bytes are always present, whether or not `CUSTOM_COLOR` is set,
+and they sit before the Name because the name has no length of its own and runs
+to the end of the packet. The packet therefore has one layout rather than two,
+and the flag decides what the bytes mean: with `CUSTOM_COLOR` set the colour is
+bound to the id, and with it clear the bytes are ignored and any colour left on
+the id is cleared — a server that is not overriding the colour sends `0, 0, 0`
+and has said nothing. A spawn is a clean slate for both properties.
 
 A mask of `0` spawns an ordinary player and clears any flags left on the id, so
 this sub-packet can serve as the only spawn packet a server sends to a client
@@ -137,21 +191,61 @@ silent players the server runs.
 Sent during the game, the packet simply changes how an already known player is
 presented, with immediate effect and no ordering constraint.
 
+## Sub ID 2: Set Colour
+
+Sets the colour of one or more player ids, as [Set Flags](#sub-id-1-set-flags)
+sets their flags.
+
+| Field Name    | Field Type       | Example | Notes                                     |
+|---------------|------------------|---------|-------------------------------------------|
+| Packet ID     | UByte            | `67`    | Always `67`.                              |
+| Sub Packet ID | UByte            | `2`     | Always `2` for this sub-packet.           |
+| Entries       | SetColourEntry[] |         | At least one, see below.                  |
+
+**SetColourEntry** (4 bytes)
+
+| Field Name | Field Type | Example | Notes                           |
+|------------|------------|---------|---------------------------------|
+| Player ID  | UByte      | `254`   | The player the colour applies to. |
+| Blue       | UByte      | `160`   | See [Colour](#colour).          |
+| Green      | UByte      | `32`    | See [Colour](#colour).          |
+| Red        | UByte      | `200`   | See [Colour](#colour).          |
+
+The entries fill the rest of the packet exactly as Set Flags' do, the last entry
+for an id wins, and a packet holds at most 63 of them inside the same 255 byte
+budget. Setting a colour does not set `CUSTOM_COLOR`: the two travel separately
+and a client applies whichever it has, so a colour sent to an id whose flag is
+clear is simply held until the flag is set, and the flag alone leaves the player
+team-coloured.
+
+A colour is its own sub-packet rather than three more bytes on a Set Flags entry
+because that entry is two bytes and its count is read from the packet length. A
+mask change is also far commoner than a colour change — colours are set at spawn
+and rarely again — so the two packets keep each other small.
+
+Set Colour has no ordering constraint of its own: unlike a mask, a colour that
+arrives late costs a frame drawn in the team colour and nothing that cannot be
+taken back. A server catching a joining client up still sends it alongside the
+Set Flags packet, before the [Existing Player](../protocol075.md#existing-player)
+flood, so the client's first frame is right.
+
 ### Lifetime
 
-Flags are bound to the **player id**, not to the player occupying it. They apply
-until one of:
+Flags and colour are bound to the **player id**, not to the player occupying it.
+They apply until one of:
 
-* a Set Flags or Extended Create Player packet for the same id replaces them —
-  a plain [Create Player](../protocol075.md#create-player) does not;
+* a Set Flags, Set Colour or Extended Create Player packet for the same id
+  replaces them — a plain [Create Player](../protocol075.md#create-player) does
+  not, and each of the three replaces only what it carries;
 * the client receives [Player Left](../protocol075.md#player-left) for that id —
   the flags apply to that packet first, so a silent player leaves silently, and
-  the id is then reset to `0`;
+  the id is then reset to a mask of `0` and no colour;
 * the world is replaced ([Map Start](../protocol075.md#map-start-075)), which
-  resets every id to `0`.
+  resets every id the same way.
 
 Defaulting to `0` means a missed or late Set Flags degrades into an ordinary,
-visible player rather than into an invisible one.
+visible player rather than into an invisible one, and a missed Set Colour into a
+team-coloured one rather than a black one.
 
 ### Notes
 
@@ -161,8 +255,9 @@ are what keep both quiet. Ids above `31` require the
 [Player Limit](player-limit.md) extension, so silent ids are best allocated
 downwards from `254`, leaving the low ids to human players.
 
-The flags change what is reported, never what is drawn: a silent player is
-rendered, heard, hit and answered in chat like any other. `HIDE_PRESENCE` and
+The hiding flags change what is reported, never what is drawn: a silent player is
+rendered, heard, hit and answered in chat like any other, and `CUSTOM_COLOR`
+changes only which colour that rendering uses. `HIDE_PRESENCE` and
 `HIDE_KILLFEED` suppress third-party notifications only — the receiving player is
 still told about their own death or their own kill, silent player named as usual.
 Objective announcements ([Intel Capture](../protocol075.md#intel-capture) and the
@@ -172,7 +267,8 @@ Silent players are not participants for the server browser either: they are left
 out of the master server [Count Update](../protocolmaster.md#count-update) and of
 the advertised capacity, so only human players are counted.
 
-Clients that did not negotiate the extension never receive either sub-packet;
+Clients that did not negotiate the extension never receive any of these
+sub-packets;
 what they are served instead — an ordinary [Create Player](../protocol075.md#create-player),
 nothing at all, or a disconnect — is entirely the server's decision.
 

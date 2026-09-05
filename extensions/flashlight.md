@@ -7,12 +7,12 @@ every client is told about every light, and a beam coming round a corner means
 the same thing to the player holding it and to the player watching it arrive.
 
 | ------------: | ------------- |
-| Extension ID: | 3             |
-| Packet ID:    | 67            |
+| Extension ID: | 4             |
+| Packet ID:    | 68            |
 | Version:      | 1             |
 | Type:         | `HAS_PACKETS` |
 
-The extension id, the number carried by `ExtInfo`, is `3`; the packet id is
+The extension id, the number carried by `ExtInfo`, is `4`; the packet id is
 `64 + extension id` as described in [Extension IDs](extension.md#extension-ids).
 
 ### Sub Packets:
@@ -37,7 +37,7 @@ server switches on itself are unaffected.
 
 | Field Name    | Field Type | Example | Notes                                 |
 |---------------|------------|---------|---------------------------------------|
-| Packet ID     | UByte      | `67`    | Always `67`.                          |
+| Packet ID     | UByte      | `68`    | Always `68`.                          |
 | Sub Packet ID | UByte      | `0`     | Always `0` for this sub-packet.       |
 | Flags         | UByte      | `0b1`   | See below.                            |
 
@@ -74,7 +74,7 @@ admin dousing somebody, a scripted blackout.
 
 | Field Name    | Field Type | Example | Notes                                              |
 |---------------|------------|---------|-----------------------------------------------------|
-| Packet ID     | UByte      | `67`    | Always `67`.                                        |
+| Packet ID     | UByte      | `68`    | Always `68`.                                        |
 | Sub Packet ID | UByte      | `1`     | Always `1` for this sub-packet.                     |
 | Player ID     | UByte      | `0`     | On relay, the player whose light this is. Ignored on the client -> server direction; the server fills it in authoritatively. |
 | State         | UByte      | `1`     | `0` off, `1` on. See below.                         |
@@ -109,7 +109,7 @@ the players it describes.
 
 | Field Name    | Field Type | Example  | Notes                                            |
 |---------------|------------|----------|---------------------------------------------------|
-| Packet ID     | UByte      | `67`     | Always `67`.                                      |
+| Packet ID     | UByte      | `68`     | Always `68`.                                      |
 | Sub Packet ID | UByte      | `2`      | Always `2` for this sub-packet.                   |
 | States        | UByte[]    | `0b1010` | Bitmask, one bit per player id, the remaining bytes of the packet. |
 

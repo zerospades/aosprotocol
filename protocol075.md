@@ -897,14 +897,14 @@ packet layout and the negotiation flow are all described in
 file next to it, and the table below is the registry of the extension ids
 registered so far.
 
-| ID   | Name                                                           | Type          | Description                                                      |
-|------|----------------------------------------------------------------|---------------|------------------------------------------------------------------|
-| 0    | [Player Properties](extensions/player-properties.md)           | `HAS_PACKETS` | Sends additional player attributes from the server to the client |
-| 4    | [Synchronous Flashlight](extensions/synchronous-flashlight.md) | `HAS_PACKETS` | A light a player carries, switched by the server, seen by all    |
-| 192  | [Player Limit](extensions/player-limit.md)                     | `PACKETLESS`  | Support for up to 256 players                                    |
-| 193  | [Message Types](extensions/message-types.md)                   | `PACKETLESS`  | Additional message types such as warnings and statuses           |
-| 194  | [Kick Reason](extensions/kick-reason.md)                       | `PACKETLESS`  | Repurposes the chat to send a disconnect reason text             |
-| none | [UTF-8 Chat](extensions/utf-8-chat.md)                         | unregistered  | Chat messages prefixed with `0xff` are UTF-8                     |
+| ID   | Name                                                             | Type          | Description                                                      |
+|------|------------------------------------------------------------------|---------------|------------------------------------------------------------------|
+| 0    | [Player Properties](extensions/player-properties.md)             | `HAS_PACKETS` | Sends additional player attributes from the server to the client |
+| 4    | [Synchronized Flashlight](extensions/synchronized-flashlight.md) | `HAS_PACKETS` | A light a player carries, switched by the server, seen by all    |
+| 192  | [Player Limit](extensions/player-limit.md)                       | `PACKETLESS`  | Support for up to 256 players                                    |
+| 193  | [Message Types](extensions/message-types.md)                     | `PACKETLESS`  | Additional message types such as warnings and statuses           |
+| 194  | [Kick Reason](extensions/kick-reason.md)                         | `PACKETLESS`  | Repurposes the chat to send a disconnect reason text             |
+| none | [UTF-8 Chat](extensions/utf-8-chat.md)                           | unregistered  | Chat messages prefixed with `0xff` are UTF-8                     |
 
 # Extra Packets
 

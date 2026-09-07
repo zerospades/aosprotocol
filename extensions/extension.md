@@ -80,3 +80,9 @@ reply with an `ExtInfo` packet that lists the extensions it supports (if it does
 
 The client can omit any extensions that the server does not support from its
 reply, but this is not necessary as the server can simply ignore them itself.
+
+Negotiation happens once, and covers the whole connection.
+[Map Start](../protocol075.md#map-start-075) replaces the world, not the
+connection: it does not re-run this exchange, and neither side should expect it
+to. What an extension resets on a map change is its own state, which each
+extension defines for itself.

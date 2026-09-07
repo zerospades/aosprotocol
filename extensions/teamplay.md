@@ -20,7 +20,7 @@ The extension id, the number carried by `ExtInfo`, is `2`; the packet id is
 
 | Sub ID | Name     | Direction         | Size |
 |--------|----------|-------------------|------|
-| 0      | Config   | Server -> Client  | 3    |
+| 0      | Config   | Server -> Client  | 11   |
 | 1      | Ping     | Client <-> Server | 24+  |
 | 2      | ESP Mark | Server -> Client  | 13+  |
 
@@ -35,15 +35,20 @@ The server announces which features are permitted. `TEAM_ESP` and `COMPASS_HUD`
 are client-side features — the client draws them itself, out of what it already
 knows — so they exist only where the server allows them, and a client must not
 turn either on by itself. `PING` is the same permission for sending. The server
-MAY send this sub-packet at any time; the client applies the new bitmask
-immediately (for example to change policy on a map rotation). A feature is only
-available to the client while its bit is set.
+MUST send a Config once the extension is negotiated, and MAY send further ones at
+any time; the client applies each one immediately, in full. A feature is only
+available to the client while its bit is set, and the packet — bitmask and
+[north](#north) alike — stands until another Config replaces it.
 
 | Field Name    | Field Type | Example | Notes                                              |
 |---------------|------------|---------|----------------------------------------------------|
 | Packet ID     | UByte      | `66`    | Always `66`.                                       |
 | Sub Packet ID | UByte      | `0`     | Always `0` for this sub-packet.                    |
 | Features      | UByte      | `0b110` | Feature bitmask, see below.                        |
+| North X       | LE float32 | `0.0`   | X component of the north vector, see [North](#north). |
+| North Y       | LE float32 | `-1.0`  | Y component of the north vector.                   |
+
+The packet is always 11 bytes.
 
 Feature bitmask:
 
@@ -62,7 +67,8 @@ not a data gate.
 compass at all, and a client that has none simply never draws on it. It is not a
 say in what goes on the compass — each [Ping](#sub-id-1-ping) and
 [ESP Mark](#sub-id-2-esp-mark) names its own surfaces, see
-[Surfaces](#surfaces) — only in whether the surface exists.
+[Surfaces](#surfaces) — only in whether the surface exists. Which way that
+compass points is [north](#north)'s business, in the same packet.
 
 A compass shows the game mode's objectives by default, with no packet asked for
 them: the tents and the intel in CTF, the territories in TC, from the positions
@@ -78,13 +84,59 @@ the server ignores any it receives; the server's own pings and marks are
 unaffected, and where they are drawn stays the business of the packets that carry
 them.
 
-Apart from the compass, no bit stops a client from rendering what the server
-sends it: pings and marks are drawn on the surfaces they name, and a server that
-wants one unseen does not send it.
-
 After the server changes the config, a Ping the client sent before receiving the
 new bitmask may still be in transit. The server simply drops such pings; this is
 not a protocol violation and needs no special handling.
+
+### On a map change
+
+The Config belongs to the connection, so a [Map Start](../protocol075.md#map-start-075)
+changes nothing about it: the bitmask and the north the client is holding both
+carry into the new world. A server that wants either to differ there sends a
+Config after the map change.
+
+Since north usually is a property of the world, a server whose maps do not share
+one will send a Config on every change.
+
+Everything else this extension holds is dropped on the change, see
+[Per-player state](#per-player-state).
+
+A Config sent during the map transfer, before the new world exists, refers to no
+player and no position, so a client has no reason to defer it and should apply it
+as it arrives.
+
+### North
+
+North X and North Y say which way north is on this map. A compass has to be read
+against something, and the base protocol names nothing: the map is a 512 by 512
+grid with X and Y running across it and no orientation of its own, so every client
+that has ever drawn a compass has had to pick a direction and hardcode it. These
+two fields make that direction the server's to state.
+
+They are the map-plane components of a vector pointing north, in the same
+coordinate frame and `LE float32` encoding as the base protocol position packets.
+
+A vector rather than an angle, because an angle needs a convention agreed in
+advance — which axis is zero, which way it grows, degrees or radians — and every
+one of those is a way for a client and a server to disagree silently while both
+look correct. Whatever a client computes a bearing with, it already has.
+
+The server should send a unit vector, and the client normalises whatever arrives
+rather than trusting the length, since only the direction is ever used.
+
+A server that is only changing policy repeats the north it already gave, because a
+compass that turns under a player undoes every bearing they have been given and
+every callout made against one. North is free to change — nothing here stops a
+server moving it between worlds or during a round, and a mode may want exactly
+that.
+
+North is carried whether or not `COMPASS_HUD` is set, so a client that is handed
+the bit later in the round already has the direction to point.
+
+A vector the client cannot take a direction from is malformed, not a value: a NaN
+or an infinity in either component, and `(0, 0)`, which has no direction to
+normalise. The client falls back to `(0, -1)` and applies the rest of the packet
+normally.
 
 ## Durations
 
@@ -106,8 +158,7 @@ The point of the encoding is to let a server pick how much work it wants to do. 
 server with nothing special in mind sends a finite duration and forgets the whole
 thing: no timer, no removal packet, no state. A server that wants a marker to
 follow its own logic sends `+inf` and removes it when its logic says so, which is
-the on/off behaviour with no extra packet type. Both spellings cost the same four
-bytes.
+the on/off behaviour with no extra packet type.
 
 A server keeping `+inf` marks must remember them anyway, if only to send them to
 players who join later; a server using finite durations should re-send an active
@@ -144,9 +195,8 @@ honest way to show it, and a scripted event or an explosion works the same way.
 Marks read the same three surfaces: an outline through walls, a dot on the map, a
 bearing on the compass, or any mix of the three.
 
-The compass carries no distance and no position, only which way to turn. That is
-why it is the surface for anything known by direction alone, and why it stays
-readable for a player who has no line of sight at all.
+The compass carries no distance and no position, only which way to turn. What its
+bearings are read against is the [north](#north) the server last sent.
 
 ## Colours
 
@@ -213,9 +263,6 @@ There is no player behind it, `255` is not an id it may look up, and the ping is
 never attributed to whoever happens to hold a nearby id. It stands on its own,
 with its label if it has one.
 
-A ping always points somewhere: there is no way to send one that means something
-without meaning it about a place.
-
 A ping carries no audience. The client has no way to ask for team only, for the
 whole server, or for one player, because it has no business knowing: it points at
 a place and the server decides who is shown it. The same is true of the label —
@@ -226,8 +273,7 @@ The label of a ping is a free string. **Message ID** is reserved and
 unimplemented: version 1 sends `0`, and a receiver that gets anything else
 renders the packet and ignores the byte. The byte is here so that a later version
 can name a label instead of spelling it, without moving where the Reason begins
-or changing how long it is. It carries the name it will have then, and reserving
-it now is what keeps that version additive.
+or changing how long it is.
 
 The Reason occupies the remaining bytes of the packet (no length prefix or
 terminator); its length is implied by the packet length, and it may be empty,
@@ -239,17 +285,15 @@ forwarding bytes verbatim. The server should cap its length, truncating on a
 codepoint boundary if needed. Clients render the string as received and fall back
 to a neutral marker for anything they do not recognise.
 
-A Reason says anything a player wants said — a place name, a plan, a joke. The
-cost is that **free text falls out of translation**: it travels as the bytes the
+A Reason says anything a player wants said. The cost is that **free text falls out of translation**: it travels as the bytes the
 sender wrote, and every reader sees those same bytes in the sender's language,
 however many of them speak it. A server that wants a room where everybody
 understands everybody can clear the Reason and relay the marker alone.
 
 A dead player does not ping. A client must not send a Ping while its player is
 dead, and the server drops any it receives from a dead player, exactly as it
-drops one sent while the feature is switched off. Waiting to respawn is not a
-vantage point, and a corpse pointing at things the living cannot see is a way of
-spectating the enemy. Whether spectators may ping is the server's call.
+drops one sent while the feature is switched off. Whether spectators may ping is
+the server's call.
 
 To identify the target of a ping, the server performs a raycasting check from the
 client's position through their crosshair direction using the X/Y/Z coordinates
@@ -273,12 +317,11 @@ Server handling of a client -> server Ping:
   everyone, spectators, etc.); the protocol does not mandate a distribution
   policy. Relaying it to nobody is a valid decision too.
 
-How long a ping stays is the server's call alone, never the pinging client's:
-Duration is only meaningful on the relay. A client asks for a ping, the server
-decides what that ping is worth — `5.0` seconds is the conventional value and
-what a server with no opinion should send, while a server building something of
-its own can make a ping last a round or vanish in half a second, without the
-client needing to know that policy or the server needing a removal packet.
+A Duration of `5.0` seconds is the conventional value and what a server with no
+opinion should send, while a server building something of its own can make a ping
+last a round
+or vanish in half a second, without the client needing to know that policy or the
+server needing a removal packet.
 
 ### Ping colour
 
@@ -293,10 +336,8 @@ Marks a player as visible through walls to whoever receives the packet. Unlike
 `TEAM_ESP`, which lets a client reveal its own team on its own initiative, a mark
 is decided by the server, targets one player, and is unrelated to teams: the
 server can reveal a player to their own team, to the other team, to everyone, or
-to a single player. That covers spotting the scoreboard leader, showing a hunted
-player to the hunters, exposing a cheater to the whole server, or a game mode that
-reveals a carrier while they hold the intel. The mark carries the colour it is
-drawn in, so those cases do not all look the same.
+to a single player. The mark carries the colour it is drawn in, so one use need
+not look like another.
 
 This sub-packet travels **server -> client only**. Unlike the Ping and the
 Message, it has no client-sent form: a client never asks for a mark and never
@@ -330,8 +371,7 @@ Flags:
 [Create Player](../protocol075.md#create-player) for that id ends the mark,
 whether the player was killed, changed team, changed weapon or was moved by a
 script, and the client needs no death bookkeeping to implement it. A mark on a
-player who dies and stays dead lasts until they come back, which is what
-"reveal them until they get away" wants anyway.
+player who dies and stays dead lasts until they come back.
 
 `SHOW_NAME` is set or clear on every mark, and the client obeys it: the name is
 shown when it is set and not shown when it is clear. Only the server knows what a
@@ -424,13 +464,7 @@ marked teammate is drawn in the mark colour alone, since the client is not
 revealing teammates at all and there is no second colour to show — a mark is an
 instruction rather than a permission, and it is rendered whatever the bit says.
 A marked enemy never blinks either, for the same reason: no team colour of the
-viewer's is in play. A server that marks a teammate in their own team colour gets
-no blink worth looking at, the two colours being the same, and should pick
-another colour when it wants the mark seen.
-
-The rest is the client's business in every case: outline thickness, opacity,
-whether the highlight fades with distance, and how the label is rendered beside
-it, if at all.
+viewer's is in play.
 
 Marks are state held per player id, and one mark per player: a new mark replaces
 the previous one and restarts its timer. A mark is dropped when its Duration
@@ -453,6 +487,8 @@ not fade away quietly — it lands on whoever takes the id next, and that player
 suddenly revealed to the enemy team, or pinned to a marker they never made.
 
 A map change ([Map Start](../protocol075.md#map-start-075)) clears everything for
-every id, on both ends. Nothing this extension holds is meant to survive a world.
+every id, on both ends: nothing this extension holds against a player is meant to
+survive a world. The Config is not held against a player and does survive, see
+[On a map change](#on-a-map-change).
 
 See [Extensions](extension.md) for how the extension is negotiated.

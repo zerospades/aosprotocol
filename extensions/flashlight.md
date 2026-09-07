@@ -1,10 +1,16 @@
-# Synchronized Flashlight
+# Flashlight
 
 A light a player carries and everybody sees. The point of the extension is the
 second half: a flashlight only one client draws is a lamp in a mirror, useful to
 nobody and invisible to the player it gives away. Here the state is the server's,
 every client is told about every light, and a beam coming round a corner means
 the same thing to the player holding it and to the player watching it arrive.
+
+The vanilla client has no flashlight at all: there is nothing about one in 0.75,
+no packet carries it and no player ever saw one. It is an *OpenSpades* addition,
+kept by *ZeroSpades*, and local to the client that switched it on — which is why
+this extension has a light to describe in [What the beam is](#what-the-beam-is)
+but no packet to inherit.
 
 | ------------: | ------------- |
 | Extension ID: | 4             |
@@ -122,8 +128,9 @@ facing slightly on the way, see [What the beam is](#what-the-beam-is).
 One light, hardcoded, the same on every client and every server. These are the
 values *OpenSpades* and *ZeroSpades* already light the local player with, and the
 extension keeps them exactly rather than inventing a light of its own: the
-behaviour players know is the behaviour they keep, and the only thing that
-changes is who can see it.
+behaviour those players know is the behaviour they keep, and the only thing that
+changes is who can see it. A client with no flashlight of its own, vanilla or
+otherwise, implements the table below and has one.
 
 | Property   | Value                            | Notes                                          |
 |------------|----------------------------------|------------------------------------------------|

@@ -31,7 +31,8 @@ The client places the sun from Time alone; the server never sends it. In map axe
 (`+x` east, `+y` south, `+z` down), the sun turns once a day around the axis
 `(0, 1, -1)`, 45° up to the south. At `720` (12 PM) it is at `(0, -1, -1)`, 45°
 up to the north. It rises in the east at `360` (6 AM) and sets in the west at
-`1080` (6 PM).
+`1080` (6 PM). These are map axes, not [Teamplay's North](teamplay.md#north),
+which does not move the sun.
 
 With `a = (Time - 720) / 4`, the degrees the sun has turned since noon, the
 daylight is `D = clamp(2 cos a, 0, 1)`. The world's lighting is scaled by `D`,

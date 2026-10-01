@@ -18,7 +18,12 @@ this extension, and at any time after; it applies on arrival.
 | Packet ID     | UByte      | `0x73`  | Always `0x73`.                        |
 | Sub Packet ID | UByte      | `0`     | Always `0` for this sub-packet.       |
 | Time          | UShort     | `0`     | Minutes since midnight, `0`-`1439`.   |
+| Speed         | UShort     | `60`    | Game minutes per real minute.         |
 | Weather       | UByte[2]   | `0`     | Reserved. Must be `0`.                |
+
+The client advances Time by Speed from the moment the Sky arrives, wrapping at
+`1440`. `0` stops the clock and `1` is real time; a day lasts `1440 / Speed` real
+minutes, so `60` gives a 24-minute day.
 
 Version 1 draws `0` (12 AM) as complete darkness: black sky and fog, no sunlight.
 It draws `720` (12 PM) as daylight, as without this extension. Other times are

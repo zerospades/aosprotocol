@@ -11,11 +11,12 @@ vanilla client has no flashlight.
 
 ### Sub Packets:
 
-| Sub ID | Name         | Direction         | Size |
-|--------|--------------|-------------------|------|
-| 0      | Light        | Client <-> Server | 4    |
-| 1      | Light State  | Server -> Client  | 2+   |
-| 2      | Light Config | Server -> Client  | 8    |
+| Sub ID | Name          | Direction         | Size |
+|--------|---------------|-------------------|------|
+| 0      | Light         | Client <-> Server | 4    |
+| 1      | Light State   | Server -> Client  | 2+   |
+| 2      | Light Config  | Server -> Client  | 8    |
+| 3      | Light Default | Server -> Client  | 7    |
 
 A client only sends Light. The server drops any other sub-packet it receives
 from a client.
@@ -66,6 +67,21 @@ it has configured.
 | Green         | UByte      | `179`   |                                        |
 | Blue          | UByte      | `128`   |                                        |
 
+## Sub ID 3: Light Default
+
+Sets the beam of every player without a Light Config, including those who join
+later. Sent to a joining client before any Light Config.
+
+| Field Name    | Field Type | Example | Notes                           |
+|---------------|------------|---------|---------------------------------|
+| Packet ID     | UByte      | `0x72`  | Always `0x72`.                  |
+| Sub Packet ID | UByte      | `3`     | Always `3` for this sub-packet. |
+| Reach         | UByte      | `60`    | As in Light Config.             |
+| Cone          | UByte      | `90`    |                                 |
+| Red           | UByte      | `255`   |                                 |
+| Green         | UByte      | `179`   |                                 |
+| Blue          | UByte      | `128`   |                                 |
+
 ## Rendering
 
 The light is a spotlight at the player's eye, pointing along the orientation the
@@ -84,7 +100,8 @@ A client turns off a player's light on
 [Player Left](../protocol075.md#player-left) for that player, and every light on
 [Map Start](../protocol075.md#map-start-075). A player's Light Config
 lasts until Player Left, surviving death, respawn and Map Start; the server may
-send a new one at any time, for example on a map change. The server applies the
-same rules and sends nothing for them.
+send a new one at any time, for example on a map change. Light Default lasts
+for the connection. The server applies the same rules and sends nothing for
+them.
 
 See [Extensions](extension.md) for how the extension is negotiated.

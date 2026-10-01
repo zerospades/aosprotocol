@@ -35,11 +35,14 @@ up to the north. It rises in the east at `360` (6 AM) and sets in the west at
 which does not move the sun.
 
 With `a = (Time - 720) / 4`, the degrees the sun has turned since noon, the
-daylight is `D = clamp(2 cos a, 0, 1)`. The world's lighting is scaled by `D`,
-and the fog and sky are drawn as the
-[Fog Colour](../protocol075.md#fog-colour) times `D`. So 6 PM to 6 AM is complete
-darkness, 8 AM to 4 PM is full daylight, and `720` looks as it does without this
+daylight is `D = max(0.1, clamp(2 cos a, 0, 1))`. The world's lighting is scaled
+by `D`, and the fog and sky are drawn as the
+[Fog Colour](../protocol075.md#fog-colour) times `D`. So 6 PM to 6 AM is night at
+`0.1`, 8 AM to 4 PM is full daylight, and `720` looks as it does without this
 extension.
+
+While the sun is below the horizon, from 6 PM to 6 AM, it casts no light and no
+shadow; the night's light falls evenly on every face.
 
 A client that negotiated this extension waits for the first Sky before drawing
 the world. The Time survives

@@ -29,7 +29,8 @@ Version 1 draws `0` (12 AM) as complete darkness: black sky and fog, no sunlight
 It draws `720` (12 PM) as daylight, as without this extension. Other times are
 drawn as the nearer of the two.
 
-Until the first Sky the client draws no world. The Time survives
+A client that negotiated this extension waits for the first Sky before drawing
+the world. The Time survives
 [Map Start](../protocol075.md#map-start-075).
 
 See [Extensions](extension.md) for how the extension is negotiated.

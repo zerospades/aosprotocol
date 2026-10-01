@@ -25,9 +25,20 @@ The client advances Time by Speed from the moment the Sky arrives, wrapping at
 `1440`. `0` stops the clock and `1` is real time; a day lasts `1440 / Speed` real
 minutes, so `60` gives a 24-minute day.
 
-Version 1 draws `0` (12 AM) as complete darkness: black sky and fog, no sunlight.
-It draws `720` (12 PM) as daylight, as without this extension. Other times are
-drawn as the nearer of the two.
+## Drawing the time
+
+The client places the sun from Time alone; the server never sends it. In map axes
+(`+x` east, `+y` south, `+z` down), the sun turns once a day around the axis
+`(0, 1, -1)`, 45° up to the south. At `720` (12 PM) it is at `(0, -1, -1)`, 45°
+up to the north. It rises in the east at `360` (6 AM) and sets in the west at
+`1080` (6 PM).
+
+With `a = (Time - 720) / 4`, the degrees the sun has turned since noon, the
+daylight is `D = clamp(2 cos a, 0, 1)`. The world's lighting is scaled by `D`,
+and the fog and sky are drawn as the
+[Fog Colour](../protocol075.md#fog-colour) times `D`. So 6 PM to 6 AM is complete
+darkness, 8 AM to 4 PM is full daylight, and `720` looks as it does without this
+extension.
 
 A client that negotiated this extension waits for the first Sky before drawing
 the world. The Time survives

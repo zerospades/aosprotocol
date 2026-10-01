@@ -10,9 +10,8 @@ The time of day and the weather, set by the server.
 
 ## Sub ID 0: Sky
 
-Server to client only. Sent to a joining client after
-[State Data](../protocol075.md#state-data), and at any time after; it applies on
-arrival.
+Server to client only. Sent as soon as the server knows the client negotiated
+this extension, and at any time after; it applies on arrival.
 
 | Field Name    | Field Type | Example | Notes                                 |
 |---------------|------------|---------|---------------------------------------|
@@ -25,7 +24,7 @@ Version 1 draws `0` (12 AM) as complete darkness: black sky and fog, no sunlight
 It draws `720` (12 PM) as daylight, as without this extension. Other times are
 drawn as the nearer of the two.
 
-Before the first Sky the client draws daylight. The Time survives
+Until the first Sky the client draws no world. The Time survives
 [Map Start](../protocol075.md#map-start-075).
 
 See [Extensions](extension.md) for how the extension is negotiated.

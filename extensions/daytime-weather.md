@@ -23,7 +23,9 @@ this extension, and at any time after; it applies on arrival.
 
 The Reserved field is kept for a later version in which the time of day passes:
 Time would then be the minutes since midnight and this field the speed at which
-it advances. A version 1 client ignores its value.
+it advances. Version 1 leaves that out because moving the sun, and the shadows
+with it, is still too costly for clients to draw. A version 1 client ignores the
+field's value.
 
 ## Drawing the time
 

@@ -19,7 +19,7 @@ this extension, and at any time after; it applies on arrival.
 | Sub Packet ID | UByte      | `0`     | Always `0` for this sub-packet.       |
 | Time          | UShort     | `0`     | Minutes since midnight, `0`-`1439`.   |
 | Speed         | UShort     | `60`    | Game minutes per real minute.         |
-| Weather       | UByte[2]   | `0`     | Reserved. Must be `0`.                |
+| Weather       | UByte[2]   | `0`     | Unimplemented in v1. Must be `0`.     |
 
 The client advances Time by Speed from the moment the Sky arrives, wrapping at
 `1440`. `0` stops the clock and `1` is real time; a day lasts `1440 / Speed` real

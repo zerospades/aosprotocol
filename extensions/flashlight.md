@@ -67,6 +67,8 @@ Config of their own, including those who join later.
 | Green         | UByte      | `179`   |                                        |
 | Blue          | UByte      | `128`   |                                        |
 
+A Cone above `179` is drawn as `179`. A Reach or Cone of `0` gives no light.
+
 ## Rendering
 
 The light is a spotlight at the player's eye, pointing along the orientation the

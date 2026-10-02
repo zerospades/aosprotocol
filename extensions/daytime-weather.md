@@ -31,10 +31,9 @@ field's value.
 
 By day, the client draws the world as it does without this extension.
 
-By night, the sun casts no light and no shadow. The rest of the world's lighting
-is scaled by `0.1`, and the fog and sky are drawn as the
-[Fog Colour](../protocol075.md#fog-colour) times `0.1`. Dynamic lights, such as
-flashlights, are not scaled.
+By night, the world is in full darkness: the sun casts no light and no shadow,
+nothing else lights the world, and the fog and sky are black. Only dynamic
+lights, such as flashlights, light it, as brightly as by day.
 
 A client that negotiated this extension waits for the first Sky before drawing
 the world. The Time survives

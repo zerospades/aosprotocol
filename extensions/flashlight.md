@@ -79,6 +79,21 @@ those: a client that negotiated this extension does not draw a flashlight the
 server has not switched on, its own included. It may approximate the light (a
 drawn cone, a glow where it lands) but does not change its reach, cone or colour.
 
+### The lamp
+
+A client draws a glare in the beam's colour at the front of each lit player's
+head, at eye height, except for the player it views the game through in first
+person.
+
+| Camera                          | Glare                                     |
+|---------------------------------|-------------------------------------------|
+| Inside the cone                 | Brightest on the axis, none at the edge.  |
+| In front of the player, outside | None, or a faint glint.                   |
+| Behind the player               | None.                                     |
+
+Only the map between the camera and the lamp hides it. It shows at least as far
+as the beam's Reach.
+
 ## Per-player state
 
 A client turns off a player's light on

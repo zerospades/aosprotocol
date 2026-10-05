@@ -82,8 +82,8 @@ drawn cone, a glow where it lands) but does not change its reach, cone or colour
 ### The lamp
 
 A client draws a glare in the beam's colour at the front of each lit player's
-head, at eye height, except for the player it views the game through in first
-person.
+head, halfway between eye height and the top of the head, except for the player
+it views the game through in first person.
 
 | Camera                          | Glare                                     |
 |---------------------------------|-------------------------------------------|

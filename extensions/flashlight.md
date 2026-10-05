@@ -81,18 +81,52 @@ drawn cone, a glow where it lands) but does not change its reach, cone or colour
 
 ### The lamp
 
-A client draws a glare in the beam's colour at the front of each lit player's
-head, halfway between eye height and the top of the head, except for the player
-it views the game through in first person.
+A client draws a glare in the beam's colour at the lamp of each lit player,
+except the player it views the game through in first person. Distances are in
+blocks and the z axis points down.
 
-| Camera                          | Glare                                     |
-|---------------------------------|-------------------------------------------|
-| Inside the cone                 | Brightest on the axis, none at the edge.  |
-| In front of the player, outside | None, or a faint glint.                   |
-| Behind the player               | None.                                     |
+**Position.** The lamp is fixed to the head, which turns with the player's yaw and
+pitches about a point 0.2 below the eye. Before pitching, the lamp is 0.36 ahead
+of that point and 0.375 above it: with a level view, 0.36 ahead of the eye and
+0.175 above it. Crouching does not move it relative to the eye.
 
-Only the map between the camera and the lamp hides it. It shows at least as far
-as the beam's Reach.
+**Strength.** With θ the angle between the beam's axis and the direction from the
+lamp to the camera, and d the distance between them:
+
+| Term     | Value                                                    |
+|----------|----------------------------------------------------------|
+| Beam     | `1 - smoothstep(min(θ / (Cone / 2), 1))`                  |
+| Lens     | `cos θ`; nothing is drawn at `θ ≥ 90°`                    |
+| Distance | `1 / (1 + (d / Reach)²)`                                  |
+| Fog      | `1 - min(d_h² / 128², 1)`, `d_h` the horizontal distance  |
+
+`smoothstep(x) = x²(3 - 2x)`. The glare follows Beam, leaving at most a faint
+glint from Lens where Beam is `0`. Clients should scale it by Distance and Fog.
+
+**Visibility.** A lamp inside a solid block shows nothing. Solid blocks on the
+segment from the lamp to the camera hide the glare; players and models do not. A
+client may ease it in and out over about 0.1 s.
+
+Position, Beam, Lens and Visibility are required, so that every client gives a
+lit player away alike. The look of the glare is free.
+
+#### Reference rendering
+
+The glare drawn over the finished frame, centred on the projected lamp, as two
+additive layers of one radial profile, `r` from `0` at the centre to `1` at the
+rim:
+
+`alpha(r) = 1 - exp(-2 · (0.05 / (r + 0.05))² · (1 - r²)²)`
+
+| Layer | Radius (screen heights) | Beam exponent | Glint | Colour             |
+|-------|-------------------------|---------------|-------|--------------------|
+| Glow  | 0.4                     | 1.5           | 0.05  | 20% towards white  |
+| Core  | 0.12                    | 1             | 0.2   | white              |
+
+Each layer's `amount` is `Beam^exponent + Glint · Lens`, times Distance, Fog,
+visibility, the light's fade-in and the dark adaptation: `1` in daylight, up to
+`8` in total darkness. The layer is drawn `Radius · √amount` wide and
+`min(√amount, 1)` bright, so more light widens the glare instead of clipping it.
 
 ## Per-player state
 

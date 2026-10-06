@@ -62,12 +62,13 @@ Config of their own, including those who join later.
 | Sub Packet ID | UByte      | `2`     | Always `2` for this sub-packet.        |
 | Player ID     | UByte      | `0`     | `255` for every unconfigured player.   |
 | Reach         | UByte      | `60`    | Blocks at which the light reaches zero. |
-| Cone          | UByte      | `90`    | Full angle of the cone, in degrees.    |
+| Cone          | UByte      | `128`   | Full angle of the cone, in π/256.      |
 | Red           | UByte      | `255`   | Linear, `255` is `1.0`.                |
 | Green         | UByte      | `179`   |                                        |
 | Blue          | UByte      | `128`   |                                        |
 
-A Cone above `179` is drawn as `179`. A Reach or Cone of `0` gives no light.
+The cone is `Cone · π / 256` radians, so it stays below a half space: `128` is
+90°, `255` is about 179.3°. A Reach or Cone of `0` gives no light.
 
 ## Rendering
 

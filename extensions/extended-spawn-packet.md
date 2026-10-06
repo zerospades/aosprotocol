@@ -143,6 +143,9 @@ about the spawn. The packet is therefore atomic: there is no window in which the
 client considers the player an ordinary participant, or draws them in the wrong
 colour.
 
+Other extensions treat it as a Create Player: [Flashlight](flashlight.md), for
+example, turns the player's light off on it.
+
 The three colour bytes are always present, whether or not `CUSTOM_COLOR` is set,
 and they sit before the Name, which has no length of its own and runs to the end
 of the packet. The packet therefore has one layout rather than two,

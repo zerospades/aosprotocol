@@ -1,12 +1,12 @@
 # Extended Spawn Packet
 
 Carries per-player-id properties the base [Create Player](../protocol075.md#create-player)
-packet has no room for. Version 1 carries two: *silence*, players that exist in
+packet has no room for. Version 1 carries three: *silence*, players that exist in
 the world and are rendered like any other player but take no part in the
 presentation *other* clients build around their player list — scoreboard, player
 counts, presence notices, kill feed — and a *colour* that marks a player out in
-the world in place of their team's. What silence leaves alone is the silent
-player's own client.
+the world in place of their team's, and a cosmetic *outfit*. What silence
+leaves alone is the silent player's own client.
 
 The base protocol has a single notion of a player: a client only knows about a
 player because it received an [Existing Player](../protocol075.md#existing-player)
@@ -27,13 +27,14 @@ real player in or out of the game unannounced.
 
 | Sub ID | Name                  | Direction        | Size          |
 |--------|-----------------------|------------------|---------------|
-| 0      | Extended Create Player| Server -> Client | `21+`         |
+| 0      | Extended Create Player| Server -> Client | `22+`         |
 | 1      | Set Flags             | Server -> Client | `2+2*entries` |
 | 2      | Set Player Colour     | Server -> Client | `2+4*entries` |
+| 3      | Set Outfit            | Server -> Client | `2+2*entries` |
 
 Sub packet 0 replaces [Create Player](../protocol075.md#create-player): it
 carries the same spawn data plus the properties, so a spawn stays one packet. Sub
-packets 1 and 2 cover everything a spawn cannot: the players already in the world
+packets 1 to 3 cover everything a spawn cannot: the players already in the world
 when a client joins, and any change made while the game runs.
 
 ## Flags
@@ -114,6 +115,26 @@ infer a team from it. Where a client colours something by team id rather than by
 the player — the scoreboard row, a kill feed name — it may keep using the team
 colour; the override is about the player in the world.
 
+## Outfit
+
+An outfit changes how a player looks and sounds, and nothing else: not their
+hitbox, speed, health, weapon, tools, team or what they may build. It keeps the
+player's outline, and the held weapon and tool are drawn as they are. With
+`CUSTOM_COLOR` set, the colour tints the outfit. A client draws an unknown
+outfit, or one it has no art for, as `0`.
+
+| Value | Name     | Look                                |
+|-------|----------|-------------------------------------|
+| 0     | Soldier  | The normal player model.            |
+| 1     | Undead   | Rotting skin, torn uniform, groans. |
+| 2     | Scout    | Light kit, no helmet.               |
+| 3     | Royal    | Crown and cape.                     |
+| 4     | Vampire  | Pale, high-collared cloak.          |
+| 5     | Miner    | Hard hat with a lamp, dusty.        |
+| 6     | Ghillie  | Camouflage suit.                    |
+| 7     | Brawler  | Bare arms, headband.                |
+| 8-255 | reserved | Drawn as `0`.                       |
+
 ## Sub ID 0: Extended Create Player
 
 Spawns a player and sets its flags in the same packet. Sent instead of
@@ -134,12 +155,13 @@ respawn, to clients that negotiated this extension.
 | Blue          | UByte        | `160`    | See [Colour](#colour).                            |
 | Green         | UByte        | `32`     | See [Colour](#colour).                            |
 | Red           | UByte        | `200`    | See [Colour](#colour).                            |
+| Outfit        | UByte        | `1`      | See [Outfit](#outfit).                            |
 | Name          | CP437 String | `Wolf`   | As in Create Player, same encoding, running to the end of the packet. |
 
 Everything shared with Create Player behaves exactly as it does there, including
-the spawn height adjustment clients apply; the additions are Flags and the
-colour, which the client stores for the id and applies before it emits anything
-about the spawn. The packet is therefore atomic: there is no window in which the
+the spawn height adjustment clients apply; the additions are Flags, the colour
+and the outfit, which the client stores for the id and applies before it emits
+anything about the spawn. The packet is therefore atomic: there is no window in which the
 client considers the player an ordinary participant, or draws them in the wrong
 colour.
 
@@ -152,7 +174,7 @@ of the packet. The packet therefore has one layout rather than two,
 and the flag decides what the bytes mean: with `CUSTOM_COLOR` set the colour is
 bound to the id, and with it clear the bytes are ignored and any colour left on
 the id is cleared, `0, 0, 0` being the conventional filler. A spawn is a clean
-slate for both properties, which is what
+slate for every property, which is what
 lets this sub-packet serve as the only spawn packet a server sends to a client
 that supports the extension.
 
@@ -231,17 +253,36 @@ taken back. A server catching a joining client up still sends it alongside the
 Set Flags packet, before the [Existing Player](../protocol075.md#existing-player)
 flood, so the client's first frame is right.
 
+## Sub ID 3: Set Outfit
+
+Sets the outfit of one or more player ids, as [Set Flags](#sub-id-1-set-flags)
+sets their flags, with no ordering constraint.
+
+| Field Name    | Field Type        | Example | Notes                                     |
+|---------------|-------------------|---------|-------------------------------------------|
+| Packet ID     | UByte             | `0x74`  | Always `0x74`.                            |
+| Sub Packet ID | UByte             | `3`     | Always `3` for this sub-packet.           |
+| Entries       | SetOutfitEntry[]  |         | At least one, see below.                  |
+
+**SetOutfitEntry** (2 bytes)
+
+| Field Name | Field Type | Example | Notes                             |
+|------------|------------|---------|-----------------------------------|
+| Player ID  | UByte      | `254`   | The player the outfit applies to. |
+| Outfit     | UByte      | `1`     | See [Outfit](#outfit).            |
+
 ### Lifetime
 
-Flags and colour are bound to the **player id**, not to the player occupying it.
+Flags, colour and outfit are bound to the **player id**, not to the player
+occupying it.
 They apply until one of:
 
-* a Set Flags, Set Player Colour or Extended Create Player packet for the same id
-  replaces them — a plain [Create Player](../protocol075.md#create-player) does
-  not, and each of the three replaces only what it carries;
+* a Set Flags, Set Player Colour, Set Outfit or Extended Create Player packet for
+  the same id replaces them — a plain [Create Player](../protocol075.md#create-player)
+  does not, and each replaces only what it carries;
 * the client receives [Player Left](../protocol075.md#player-left) for that id —
   the flags apply to that packet first, so a silent player leaves silently, and
-  the id is then reset to a mask of `0` and no colour;
+  the id is then reset to a mask of `0`, no colour and outfit `0`;
 * the world is replaced ([Map Start](../protocol075.md#map-start-075)), which
   resets every id the same way.
 

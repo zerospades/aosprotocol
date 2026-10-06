@@ -83,20 +83,15 @@ drawn cone, a glow where it lands) but does not change its reach, cone or colour
 ### The lamp
 
 A client draws a glare in the beam's colour at the lamp of each lit player,
-except the player it views the game through in first person. Distances are in
-blocks and the z axis points down.
-
-**Position.** The lamp is fixed to the head, which turns with the player's yaw and
-pitches about a point 0.2 below the eye. Before pitching, the lamp is 0.36 ahead
-of that point and 0.375 above it: with a level view, 0.36 ahead of the eye and
-0.175 above it. Crouching does not move it relative to the eye.
+except the player it views the game through in first person. The lamp is
+somewhere in the player's head; where exactly is up to the client.
 
 **Strength.** With θ the angle between the beam's axis and the direction from the
-lamp to the camera, and d the distance between them:
+lamp to the camera, and d the distance in blocks between them:
 
 | Term     | Value                                                    |
 |----------|----------------------------------------------------------|
-| Beam     | `1 - smoothstep(min(θ / (Cone / 2), 1))`                  |
+| Beam     | `1 - smoothstep(min(θ / (Cone · π / 512), 1))`            |
 | Lens     | `cos θ`; nothing is drawn at `θ ≥ 90°`                    |
 | Distance | `1 / (1 + (d / Reach)²)`                                  |
 | Fog      | `1 - min(d_h² / 128², 1)`, `d_h` the horizontal distance  |
@@ -108,7 +103,7 @@ glint from Lens where Beam is `0`. Clients should scale it by Distance and Fog.
 segment from the lamp to the camera hide the glare; players and models do not. A
 client may ease it in and out over about 0.1 s.
 
-Position, Beam, Lens and Visibility are required, so that every client gives a
+Beam, Lens and Visibility are required, so that every client gives a
 lit player away alike. The look of the glare is free.
 
 #### Reference rendering

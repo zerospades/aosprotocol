@@ -18,13 +18,10 @@ disappear as loudly or as quietly as the server wants, and a server can move a
 real player in or out of the game unannounced.
 
 | ------------: | ------------- |
-| Extension ID: | 3             |
-| Packet ID:    | 67            |
+| Extension ID: | `0x34`        |
+| Packet ID:    | `0x74`        |
 | Version:      | 1             |
 | Type:         | `HAS_PACKETS` |
-
-The extension id negotiated in `ExtInfo` is `3`; the packet id is `64 + extension
-id` as described in [Extension IDs](extension.md#extension-ids).
 
 ### Sub Packets:
 
@@ -125,7 +122,7 @@ respawn, to clients that negotiated this extension.
 
 | Field Name    | Field Type   | Example  | Notes                                             |
 |---------------|--------------|----------|---------------------------------------------------|
-| Packet ID     | UByte        | `67`     | Always `67`.                                      |
+| Packet ID     | UByte        | `0x74`   | Always `0x74`.                                    |
 | Sub Packet ID | UByte        | `0`      | Always `0` for this sub-packet.                   |
 | Player ID     | UByte        | `254`    |                                                   |
 | Flags         | UByte        | `0b1011` | See [Flags](#flags).                              |
@@ -162,7 +159,7 @@ Sets the flags of one or more player ids.
 
 | Field Name    | Field Type      | Example | Notes                                     |
 |---------------|-----------------|---------|-------------------------------------------|
-| Packet ID     | UByte           | `67`    | Always `67`.                              |
+| Packet ID     | UByte           | `0x74`  | Always `0x74`.                            |
 | Sub Packet ID | UByte           | `1`     | Always `1` for this sub-packet.           |
 | Entries       | SetFlagsEntry[] |         | At least one, see below.                  |
 
@@ -202,7 +199,7 @@ and a different thing entirely.
 
 | Field Name    | Field Type       | Example | Notes                                     |
 |---------------|------------------|---------|-------------------------------------------|
-| Packet ID     | UByte            | `67`    | Always `67`.                              |
+| Packet ID     | UByte            | `0x74`  | Always `0x74`.                            |
 | Sub Packet ID | UByte            | `2`     | Always `2` for this sub-packet.           |
 | Entries       | SetPlayerColourEntry[] | | At least one, see below.             |
 

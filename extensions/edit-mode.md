@@ -13,7 +13,7 @@ Lifts the client's building limits, for map editing and creative servers.
 | Sub ID | Name        | Direction         | Size       |
 |--------|-------------|-------------------|------------|
 | 0      | Edit Mode   | Server -> Client  | 3          |
-| 1      | Place Model | Client <-> Server | 15 + model |
+| 1      | Place Model | Client <-> Server | 16 + model |
 
 ## Sub ID 0: Edit Mode
 
@@ -52,15 +52,27 @@ and the server sends it to every client, the sender included, if it allows it.
 | Packet ID     | UByte      | `0x76`  | Always `0x76`.                                   |
 | Sub Packet ID | UByte      | `1`     | Always `1` for this sub-packet.                  |
 | Player ID     | UByte      | `0`     | The player who placed it. Ignored by the server. |
-| X position    | LE Int     | `256`   | Where the model's voxel `0, 0, 0` goes.          |
+| X position    | LE Int     | `256`   | Where the rotated model's voxel `0, 0, 0` goes.  |
 | Y position    | LE Int     | `256`   |                                                  |
 | Z position    | LE Int     | `30`    |                                                  |
+| Rotation      | UByte      | `0b01`  | See below.                                       |
 | Model         | Byte[]     |         | A KV6 file, to the end of the packet.            |
 
 The model is at most 65,536 bytes. Each of its voxels becomes a block of the
 voxel's colour, replacing what was there; its empty cells leave the map as it
 is. Its axes are the map's, and its pivot is ignored. Voxels outside the map or
 below the water level are dropped.
+
+Rotation is in quarter turns, two bits per axis, applied around X, then Y, then
+Z. The model turns within its bounding box, so its voxels keep coordinates from
+`0` up, and the rotated voxel `0, 0, 0` goes at the position.
+
+| Bits | Axis     | One quarter turn takes |
+|------|----------|------------------------|
+| 0-1  | X        | `+y` to `+z`           |
+| 2-3  | Y        | `+z` to `+x`           |
+| 4-5  | Z        | `+x` to `+y`           |
+| 6-7  | reserved | Must be `0`.           |
 
 A client applies the model only when the server sends it. The server may drop it
 or change its position.

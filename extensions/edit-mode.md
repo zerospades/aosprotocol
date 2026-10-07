@@ -13,7 +13,7 @@ Lifts the client's building limits, for map editing and creative servers.
 | Sub ID | Name        | Direction         | Size       |
 |--------|-------------|-------------------|------------|
 | 0      | Edit Mode   | Server -> Client  | 3          |
-| 1      | Place Model | Client <-> Server | 16 + model |
+| 1      | Place Model | Client <-> Server | 17 + model |
 
 ## Sub ID 0: Edit Mode
 
@@ -56,12 +56,22 @@ and the server sends it to every client, the sender included, if it allows it.
 | Y position    | LE Int     | `256`   |                                                  |
 | Z position    | LE Int     | `30`    |                                                  |
 | Rotation      | UByte      | `0b01`  | See below.                                       |
+| Mode          | UByte      | `0`     | See below.                                       |
 | Model         | Byte[]     |         | A KV6 file, to the end of the packet.            |
 
-The model is at most 65,536 bytes. Each of its voxels becomes a block of the
-voxel's colour, replacing what was there; its empty cells leave the map as it
-is. Its axes are the map's, and its pivot is ignored. Voxels outside the map or
-below the water level are dropped.
+The model is at most 65,536 bytes. Its axes are the map's, and its pivot is
+ignored. Its inside counts as solid. Its empty cells, and voxels outside the map
+or below the water level, leave the map as it is.
+
+| Mode  | Name        | A model voxel over an empty cell | A model voxel over a block   |
+|-------|-------------|----------------------------------|------------------------------|
+| 0     | `FILL`      | Adds a block of its colour.      | Leaves the block.            |
+| 1     | `OVERWRITE` | Adds a block of its colour.      | Replaces it with its colour. |
+| 2     | `CUT`       | Nothing.                         | Removes the block.           |
+| 3     | `PAINT`     | Nothing.                         | Gives the block its colour.  |
+| 4-255 | reserved    | The server drops the packet.     |                              |
+
+Blocks a `CUT` leaves unsupported fall, as after any other destroy.
 
 Rotation is in quarter turns, two bits per axis, applied around X, then Y, then
 Z. The model turns within its bounding box, so its voxels keep coordinates from

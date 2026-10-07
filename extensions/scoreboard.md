@@ -6,13 +6,10 @@ is wrong on any server with non-unit scoring, teamkill penalties or objective
 points, and stays wrong for the rest of the round.
 
 | ------------: | ------------- |
-| Extension ID: | 5             |
-| Packet ID:    | 69            |
+| Extension ID: | `0x37`        |
+| Packet ID:    | `0x77`        |
 | Version:      | 1             |
 | Type:         | `HAS_PACKETS` |
-
-The packet id is `64 + extension id`, see
-[Extension IDs](extension.md#extension-ids).
 
 ### Sub Packets:
 
@@ -22,9 +19,10 @@ The packet id is `64 + extension id`, see
 | 1      | Score Table     | Server -> Client | 2+   |
 | 2      | Team Score      | Server -> Client | 7    |
 | 3      | Resync Request  | Client -> Server | 2    |
+| 4      | Scoreboard Mode | Server -> Client | 3    |
 
-Sub ids 0-2 are server to client; a server that receives one from a client drops
-it. Sub id 3 is the only packet a client sends.
+Sub id 3 is the only packet a client sends; a server drops any other it receives
+from a client.
 
 ## Sub ID 0: Score Update
 
@@ -32,7 +30,7 @@ One player's score. Sent whenever it changes, for any reason.
 
 | Field Name    | Field Type | Example | Notes                           |
 |---------------|------------|---------|---------------------------------|
-| Packet ID     | UByte      | `69`    | Always `69`.                    |
+| Packet ID     | UByte      | `0x77`  | Always `0x77`.                  |
 | Sub Packet ID | UByte      | `0`     | Always `0` for this sub-packet. |
 | Player ID     | UByte      | `0`     |                                 |
 | Score         | LE Int     | `7`     | Signed, absolute.               |
@@ -51,11 +49,11 @@ Every score at once, for a client that has just joined. The server sends it afte
 [State Data](../protocol075.md#state-data), and in response to a
 [Resync Request](#sub-id-3-resync-request).
 
-| Field Name    | Field Type | Example | Notes                                     |
-|---------------|------------|---------|-------------------------------------------|
-| Packet ID     | UByte      | `69`    | Always `69`.                              |
-| Sub Packet ID | UByte      | `1`     | Always `1` for this sub-packet.           |
-| Entries       | Entry[]    |         | The remaining bytes, 5 each. See below.   |
+| Field Name    | Field Type | Example | Notes                                   |
+|---------------|------------|---------|-----------------------------------------|
+| Packet ID     | UByte      | `0x77`  | Always `0x77`.                          |
+| Sub Packet ID | UByte      | `1`     | Always `1` for this sub-packet.         |
+| Entries       | Entry[]    |         | The remaining bytes, 5 each. See below. |
 
 **Entry**
 
@@ -72,12 +70,12 @@ drops it whole.
 
 ## Sub ID 2: Team Score
 
-| Field Name    | Field Type | Example | Notes                                    |
-|---------------|------------|---------|------------------------------------------|
-| Packet ID     | UByte      | `69`    | Always `69`.                             |
-| Sub Packet ID | UByte      | `2`     | Always `2` for this sub-packet.          |
-| Team ID       | UByte      | `0`     | `0` and `1` as in the base protocol.     |
-| Score         | LE Int     | `3`     | Signed, absolute.                        |
+| Field Name    | Field Type | Example | Notes                                |
+|---------------|------------|---------|--------------------------------------|
+| Packet ID     | UByte      | `0x77`  | Always `0x77`.                       |
+| Sub Packet ID | UByte      | `2`     | Always `2` for this sub-packet.      |
+| Team ID       | UByte      | `0`     | `0` and `1` as in the base protocol. |
+| Score         | LE Int     | `3`     | Signed, absolute.                    |
 
 [CTF State](../protocol075.md#ctf-state) carries a team score as a `UByte`, so it
 saturates at `255` and exists only in CTF. This one does not and is sent in any
@@ -89,12 +87,30 @@ Asks the server for a [Score Table](#sub-id-1-score-table). No payload.
 
 | Field Name    | Field Type | Example | Notes                           |
 |---------------|------------|---------|---------------------------------|
-| Packet ID     | UByte      | `69`    | Always `69`.                    |
+| Packet ID     | UByte      | `0x77`  | Always `0x77`.                  |
 | Sub Packet ID | UByte      | `3`     | Always `3` for this sub-packet. |
 
 A request, like everything a client sends: the server may ignore it, and should
 rate limit it. A client sends one when it has reason to believe its table is
 stale, not on a timer and not to poll.
+
+## Sub ID 4: Scoreboard Mode
+
+How the scoreboard groups players. Sent with the
+[Score Table](#sub-id-1-score-table) and whenever the mode changes. Until the
+first one, the mode is `0`.
+
+| Field Name    | Field Type | Example | Notes                           |
+|---------------|------------|---------|---------------------------------|
+| Packet ID     | UByte      | `0x77`  | Always `0x77`.                  |
+| Sub Packet ID | UByte      | `4`     | Always `4` for this sub-packet. |
+| Mode          | UByte      | `1`     | See below.                      |
+
+| Mode  | Name     | Scoreboard                                                                                                       |
+|-------|----------|------------------------------------------------------------------------------------------------------------------|
+| 0     | `TEAMS`  | A column per team, its players ranked by score, with the team score.                                             |
+| 1     | `SOLO`   | Every player is a team of one: a single list ranked by score, no team score, and no player is anyone's teammate. |
+| 2-255 | reserved | Treated as `0`.                                                                                                  |
 
 ## The client does not derive score
 
@@ -133,8 +149,8 @@ would make a second source of truth for state that already has one.
 
 ## Version growth
 
-Version 1 defines sub ids `0`-`3`. A receiver drops a sub id it does not know,
+Version 1 defines sub ids `0`-`4`. A receiver drops a sub id it does not know,
 so a version 2 may add sub-packets without breaking version 1 — but it may not
-change the layout of `0`-`3`, which is what makes that safe.
+change the layout of `0`-`4`, which is what makes that safe.
 
 See [Extensions](extension.md) for how the extension is negotiated.

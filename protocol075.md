@@ -948,12 +948,12 @@ registered so far.
 | ID   | Name                                                 | Type          | Description                                                      |
 |------|------------------------------------------------------|---------------|------------------------------------------------------------------|
 | 0    | [Player Properties](extensions/player-properties.md) | `HAS_PACKETS` | Sends additional player attributes from the server to the client |
-| 5    | [Scoreboard](extensions/scoreboard.md)               | `HAS_PACKETS` | Server-authoritative player and team scores                      |
 | 0x20 | [Damage Markers](extensions/damage-markers.md)       | `HAS_PACKETS` | Tells the client how much damage a hit did and who took it       |
 | 48   | [Teamplay](extensions/teamplay.md)                   | `HAS_PACKETS` | The features a team needs to play together                       |
 | 0x31 | [Pie Menu](extensions/pie-menu.md)                   | `HAS_PACKETS` | The server defines the client's radial quick menu                |
 | 0x32 | [Flashlight](extensions/flashlight.md)               | `HAS_PACKETS` | A light a player carries, switched by the server, seen by all    |
 | 0x33 | [Daytime and Weather](extensions/daytime-weather.md) | `HAS_PACKETS` | The time of day and the weather, set by the server               |
+| 0x37 | [Scoreboard](extensions/scoreboard.md)               | `HAS_PACKETS` | Server-authoritative player and team scores                      |
 | 192  | [Player Limit](extensions/player-limit.md)           | `PACKETLESS`  | Support for up to 255 players                                    |
 | 193  | [Message Types](extensions/message-types.md)         | `PACKETLESS`  | Additional message types such as warnings and statuses           |
 | 194  | [Kick Reason](extensions/kick-reason.md)             | `PACKETLESS`  | Repurposes the chat to send a disconnect reason text             |

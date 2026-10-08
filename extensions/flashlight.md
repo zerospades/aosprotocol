@@ -15,7 +15,7 @@ vanilla client has no flashlight.
 |--------|--------------|-------------------|------|
 | 0      | Light        | Client <-> Server | 4    |
 | 1      | Light State  | Server -> Client  | 2+   |
-| 2      | Light Config | Server -> Client  | 8    |
+| 2      | Light Config | Server -> Client  | 9    |
 
 A client only sends Light. The server drops any other sub-packet it receives
 from a client.
@@ -52,9 +52,10 @@ the array is off.
 ## Sub ID 2: Light Config
 
 Sets one player's beam. The server sends it whenever it likes, for example when a
-player equips a different flashlight, and to a joining client for every player
-it has configured. Player ID `255` sets the beam of every player without a Light
-Config of their own, including those who join later.
+player equips a different flashlight or it starts or stops flickering, and to a
+joining client for every player it has configured. Player ID `255` sets the beam
+of every player without a Light Config of their own, including those who join
+later.
 
 | Field Name    | Field Type | Example | Notes                                  |
 |---------------|------------|---------|----------------------------------------|
@@ -66,6 +67,7 @@ Config of their own, including those who join later.
 | Red           | UByte      | `255`   | Linear, `255` is `1.0`.                |
 | Green         | UByte      | `179`   |                                        |
 | Blue          | UByte      | `128`   |                                        |
+| Flicker       | UByte      | `0`     | `0` steady, see [Flicker](#flicker).   |
 
 The cone is `Cone · π / 256` radians, so it stays below a half space: `128` is
 90°, `255` is about 179.3°. A Reach or Cone of `0` gives no light.
@@ -79,6 +81,12 @@ A client draws every lit player's light, whichever team they are on, and only
 those: a client that negotiated this extension does not draw a flashlight the
 server has not switched on, its own included. It may approximate the light (a
 drawn cone, a glow where it lands) but does not change its reach, cone or colour.
+
+### Flicker
+
+A light with a non-zero Flicker drops out in short, irregular bursts, dark about
+`Flicker / 512` of the time. The beam and its glare drop out together. The
+pattern is up to the client.
 
 ### The lamp
 

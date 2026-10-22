@@ -13,6 +13,7 @@ reverse engineered to document the protocol.
 
  * [0.75 (and 0.76) documentation](protocol075.md)
  * [1.0 alpha documentation](protocol100a1.md)
+ * [Client conventions](client.md)
 
 ## Extensions
 
@@ -20,7 +21,8 @@ The 0.75 protocol supports extensions, which allow adding new packets as well as
 querying the support for client and server functionality.
 
 The ids, types and negotiation mechanism are described in
-[Extensions](extensions/extension.md). The registry of extension ids, each
+[Extensions](extensions/extension.md). The small rules every extension follows, such as
+NUL-terminated strings in CP437 or UTF-8, are in the [Standard](standard.md). The registry of extension ids, each
 with a link to its specification, is listed in the
 [0.75 documentation](protocol075.md#extensions).
 
@@ -36,6 +38,7 @@ each version should be linked here.
 ## Other Protocols
 
  * [Master Server Protocol](protocolmaster.md)
+ * [Server List](serverlist.md)
  * [Ping Protocol](protocolping.md)
 
 # Other Resources

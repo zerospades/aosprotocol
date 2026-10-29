@@ -948,6 +948,7 @@ registered so far.
 | ID   | Name                                                 | Type          | Description                                                      |
 |------|------------------------------------------------------|---------------|------------------------------------------------------------------|
 | 0    | [Player Properties](extensions/player-properties.md) | `HAS_PACKETS` | Sends additional player attributes from the server to the client |
+| 2    | [Client Key](extensions/client-key.md)               | `HAS_PACKETS` | Lets a server recognise a client it has seen before              |
 | 0x20 | [Damage Markers](extensions/damage-markers.md)       | `HAS_PACKETS` | Tells the client how much damage a hit did and who took it       |
 | 48   | [Teamplay](extensions/teamplay.md)                   | `HAS_PACKETS` | The features a team needs to play together                       |
 | 0x31 | [Pie Menu](extensions/pie-menu.md)                   | `HAS_PACKETS` | The server defines the client's radial quick menu                |

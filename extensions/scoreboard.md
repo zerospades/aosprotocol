@@ -125,6 +125,14 @@ else. A client treats every other player as an enemy, whatever the team field
 says: no name tag or map marker as a teammate, and its hits are reported as on
 any enemy. Team chat is sent as usual; whom it reaches is the server's choice.
 
+Objectives stay the base protocol's, between teams `0` and `1`. A team past `1`
+holds no intel and captures no territory, and in
+[CTF State](../protocol075.md#ctf-state),
+[TC State](../protocol075.md#tc-state),
+[Move Object](../protocol075.md#move-object) and
+[Territory Capture](../protocol075.md#territory-capture) a team of `2` still
+means neutral.
+
 The mode holds for the whole map. It is sent only in step 1 of the
 [Sequence](#sequence), and changes only with the next
 [Map Start](../protocol075.md#map-start-075). A client ignores a Scoreboard Mode

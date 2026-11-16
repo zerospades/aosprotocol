@@ -38,8 +38,8 @@ receives, in this order:
 
 The server leaves out anything at its default. A client that holds packets back
 while the map loads keeps them in the order they arrived; "before" and "after"
-above are that order. During the game every packet but the Team Count is sent when what it
-carries changes, and takes effect at once.
+above are that order. During the game every packet but the Team Count is sent
+when what it carries changes, and takes effect at once.
 
 ## Sub ID 0: Score
 
@@ -141,8 +141,8 @@ and name from State Data and start with events `0`; a Team Info for either
 overrides them, in whichever order the two arrive, until the next Map Start.
 Every other team of the map gets its Team Info in step 1 of the
 [Sequence](#sequence), before any player can be in it; until it does, a client
-gives it a colour and name of its own choosing and events `0`. A server refuses a
-[Change Team](../protocol075.md#change-team) to a team the map does not have,
+gives it a colour and name of its own choosing and events `0`. A server refuses
+a [Change Team](../protocol075.md#change-team) to a team the map does not have,
 leaving the player where they were.
 
 ### Team Events

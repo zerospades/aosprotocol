@@ -77,19 +77,21 @@ protocol.
 | Sub Packet ID | UByte      | `2`     | Always `2` for this sub-packet. |
 | Teams         | UByte      | `2`     | See below.                      |
 
-| Teams   | Game                                                                                |
-|---------|-------------------------------------------------------------------------------------|
-| `0`     | `SOLO`: no teams. Every player plays for themselves; the scoreboard is one list.    |
-| `1`-`255` | That many teams, `0` to `Teams`-1, each with its players and its score.          |
+| Teams     | Game                                                                             |
+|-----------|----------------------------------------------------------------------------------|
+| `0`       | `SOLO`: no teams. Every player plays for themselves; the scoreboard is one list. |
+| `1`-`254` | That many teams, `0` to `Teams`-1, each with its players and its score.          |
+| `255`     | Reserved: never sent. A client ignores the packet.                               |
+
+The extension supports up to 254 teams, `0` to `253`; `255` stays the
+spectators. A client that negotiates it accepts any Team Count from `0` to
+`254`. How its scoreboard lays out many teams is its own choice.
 
 Every player is on one of the map's teams, or on `255` as a spectator; a client
 treats a player on any other team as a spectator. Who can hurt whom stays the
-server's choice. In
-`SOLO` they are on team `0`, which gives them its colour and nothing else: a
-client treats every other player as an enemy, with no teammate name tag or map
-marker, and team chat reaches whom the server chooses.
-
-How the scoreboard lays out many teams is the client's choice.
+server's choice. In `SOLO` they are on team `0`, which gives them its colour and
+nothing else: a client treats every other player as an enemy, with no teammate
+name tag or map marker, and team chat reaches whom the server chooses.
 
 Objectives stay the base protocol's, between teams `0` and `1`, so only a map
 of two teams or more has them. A team past `1` holds no intel and captures no

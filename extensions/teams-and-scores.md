@@ -1,7 +1,7 @@
-# Scoreboard
+# Teams and Scores
 
-Player and team scores set by the server, the score that wins, how many teams
-a map is played with, their colours, names and shown events, and who is on the
+How many teams a map is played with, their colours, names and shown events,
+player and team scores set by the server, the score that wins, and who is on the
 scoreboard.
 
 | ------------: | ------------- |
@@ -21,9 +21,6 @@ scoreboard.
 | 4      | Listed       | Server -> Client | 4        |
 | 5      | Target Score | Server -> Client | 6        |
 
-Every sub-packet is sent by the server. A server drops one it receives from a
-client.
-
 ## Sequence
 
 A client joining, or reloading after [Map Start](../protocol075.md#map-start-075),
@@ -39,8 +36,7 @@ receives, in this order:
    [Score](#sub-id-0-score) and a [Team Score](#sub-id-1-team-score) for every
    player and team not at `0`.
 
-The server leaves out what is at its default: two teams, no target, a score of
-`0`, every player listed. A client that holds packets back while the map loads
+The server leaves out anything at its default. A client that holds packets back while the map loads
 keeps them in the order they arrived; "before" and "after" above are that
 order. During the game every packet but the Team Count is sent when what it
 carries changes, and takes effect at once.
@@ -58,8 +54,7 @@ One player's score.
 
 ## Sub ID 1: Team Score
 
-One team's score, in any game mode. It takes precedence over the scores in
-[CTF State](../protocol075.md#ctf-state).
+One team's score, in any game mode.
 
 | Field Name    | Field Type | Example | Notes                           |
 |---------------|------------|---------|---------------------------------|
@@ -87,7 +82,9 @@ protocol.
 | `0`     | `SOLO`: no teams. Every player plays for themselves; the scoreboard is one list.    |
 | `1`-`255` | That many teams, `0` to `Teams`-1, each with its players and its score.          |
 
-Every player is on one of the map's teams, or on `255` as a spectator. In
+Every player is on one of the map's teams, or on `255` as a spectator; a client
+treats a player on any other team as a spectator. Who can hurt whom stays the
+server's choice. In
 `SOLO` they are on team `0`, which gives them its colour and nothing else: a
 client treats every other player as an enemy, with no teammate name tag or map
 marker, and team chat reaches whom the server chooses.
@@ -100,9 +97,13 @@ territory, and in [CTF State](../protocol075.md#ctf-state),
 [TC State](../protocol075.md#tc-state),
 [Move Object](../protocol075.md#move-object) and
 [Territory Capture](../protocol075.md#territory-capture) a team of `2` still
-means neutral. In `SOLO` and with one team, the server still sends the State
-the base protocol requires, with no territory in TC, and a client draws no
-intel or base.
+means neutral. In `SOLO` and with one team, the server still sends the CTF or TC
+State the base protocol requires, with no territory in TC, but no
+[Intel Pickup](../protocol075.md#intel-pickup),
+[Intel Drop](../protocol075.md#intel-drop),
+[Intel Capture](../protocol075.md#intel-capture),
+[Territory Capture](../protocol075.md#territory-capture) or
+[Progress Bar](../protocol075.md#progress-bar).
 
 The Team Count holds for the whole map. A client takes one only if it arrives
 between Map Start and State Data, and ignores it otherwise.
@@ -148,9 +149,13 @@ shows everything.
 
 | Bit | Name            | Hides                                                                                                        |
 |-----|-----------------|--------------------------------------------------------------------------------------------------------------|
-| 0   | `HIDE_PRESENCE` | Join, team change and leave notifications for a player of the team. A team change is judged by the new team. |
+| 0   | `HIDE_PRESENCE` | Join and leave notifications for a player of the team, and team change notifications, see below. |
 | 1   | `HIDE_KILLFEED` | The kill feed line of a [Kill Action](../protocol075.md#kill-action) whose killer or victim is of the team.  |
 | 2-7 | reserved        | Sent as `0`, ignored by the client.                                                                          |
+
+A team change is hidden only if both the team left and the team joined hide
+presence: moving between a shown and a hidden team, either way, is shown.
+Spectators have no mask and count as shown.
 
 The mask never hides what a client is shown about its own player: its own join,
 kills and deaths are shown whatever its team's mask.
@@ -167,7 +172,8 @@ player is listed.
 | Player ID     | UByte      | `0`     |                                             |
 | Listed        | UByte      | `0`     | `0` off the scoreboard. Any other value on. |
 
-A player off the scoreboard is left out of it and of the player counts, and no
+A player off the scoreboard is left out of it and of any count of players it
+shows, and no
 join, team change or leave notification is shown for them, whatever their
 team's events. Their kills and deaths still reach the kill feed, as their
 team's events allow. They are drawn, heard and hit as any other player, and
@@ -209,9 +215,10 @@ A client never changes a score itself, on
 [Kill Action](../protocol075.md#kill-action),
 [Intel Capture](../protocol075.md#intel-capture),
 [Territory Capture](../protocol075.md#territory-capture) or any other event. The
-server sends every change. The score in
-[Existing Player](../protocol075.md#existing-player) and in
-[Player Properties](player-properties.md) is ignored: this extension is the only
+server sends every change. The scores in
+[Existing Player](../protocol075.md#existing-player),
+[CTF State](../protocol075.md#ctf-state) and
+[Player Properties](player-properties.md) are ignored: this extension is the only
 source of scores.
 
 ## Reset

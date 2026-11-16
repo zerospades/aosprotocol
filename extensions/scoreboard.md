@@ -1,7 +1,7 @@
 # Scoreboard
 
-Player and team scores set by the server, how many teams the scoreboard shows,
-their colours and names, and who is on it.
+Player and team scores set by the server, the score that wins, how many teams
+the scoreboard shows, their colours and names, and who is on it.
 
 | ------------: | ------------- |
 | Extension ID: | `0x37`        |
@@ -20,6 +20,7 @@ their colours and names, and who is on it.
 | 4      | Scoreboard Mode | Server -> Client | 3             |
 | 5      | Team Info       | Server -> Client | `7+name`      |
 | 6      | Listed          | Server -> Client | 4             |
+| 7      | Target Score    | Server -> Client | 6             |
 
 Sub id 3 is the only packet a client sends; a server drops any other it receives
 from a client.
@@ -165,6 +166,23 @@ To keep a joining player's arrival quiet, the server sends Listed before the
 [Create Player](../protocol075.md#create-player) that introduces them. A client
 always lists its own player.
 
+## Sub ID 7: Target Score
+
+The score that wins: a team's, or in `SOLO` a player's. Sent with the
+[Score Table](#sub-id-1-score-table) and whenever it changes. It takes
+precedence over the capture limit in [CTF State](../protocol075.md#ctf-state);
+until the first one, that capture limit applies in CTF and there is no target in
+TC.
+
+| Field Name    | Field Type | Example | Notes                           |
+|---------------|------------|---------|---------------------------------|
+| Packet ID     | UByte      | `0x77`  | Always `0x77`.                  |
+| Sub Packet ID | UByte      | `7`     | Always `7` for this sub-packet. |
+| Target        | LE Int     | `10`    | Signed. `0` means no target.    |
+
+One target applies to every team, or to every player in `SOLO`. A client shows
+it and never ends the game on it; the server decides the win.
+
 ## Scores
 
 A client never changes a score itself, on
@@ -177,7 +195,7 @@ carries a score, the later packet wins.
 [Player Left](../protocol075.md#player-left) clears that player's score and
 lists the id again, after the leave is handled, so an unlisted player leaves
 silently. [Map Start](../protocol075.md#map-start-075) clears every player and
-team score, undefines every team past `1`, restores teams `0` and `1` to the
+team score and the target, undefines every team past `1`, restores teams `0` and `1` to the
 State Data that follows it, and lists every player again.
 [Create Player](../protocol075.md#create-player) keeps all of it.
 

@@ -29,20 +29,19 @@ client.
 A client joining, or reloading after [Map Start](../protocol075.md#map-start-075),
 receives, in this order:
 
-1. after the map, before the first
-   [Existing Player](../protocol075.md#existing-player): a
-   [Team Info](#sub-id-4-team-info) for every defined team past `1` and every
-   override of `0` or `1`, then the [Scoreboard Mode](#sub-id-3-scoreboard-mode),
-   the [Target Score](#sub-id-6-target-score), and a [Listed](#sub-id-5-listed)
-   for every player off the scoreboard;
+1. before the first [Existing Player](../protocol075.md#existing-player): a
+   [Team Info](#sub-id-4-team-info) for every team it introduces or overrides,
+   the [Scoreboard Mode](#sub-id-3-scoreboard-mode), and a
+   [Listed](#sub-id-5-listed) for every player off the scoreboard, so that
+   no player arrives in an unknown team or with a notification;
 2. the base protocol's Existing Player for every player, then
    [State Data](../protocol075.md#state-data);
-3. after State Data: the [Score Table](#sub-id-1-score-table).
+3. after State Data: the [Target Score](#sub-id-6-target-score) and the
+   [Score Table](#sub-id-1-score-table).
 
-A packet of step 1 the server has nothing to say with is left out: a mode of
-`2`, no target, no team past `1`, every player listed. During the game every
-packet but the [Scoreboard Mode](#sub-id-3-scoreboard-mode) is sent when what
-it carries changes, and takes effect at once.
+The server leaves out what is at its default: a mode of `2`, no target, no team
+past `1`, every player listed. During the game every packet but the Scoreboard
+Mode is sent when what it carries changes, and takes effect at once.
 
 ## Sub ID 0: Score Update
 
@@ -117,8 +116,7 @@ In a mode of N teams, a player's team in
 [Short Player Data](../protocol075.md#short-player-data),
 [Create Player](../protocol075.md#create-player) and
 [Change Team](../protocol075.md#change-team) is `0` to N-1, or `255` for a
-spectator. No player is ever in a team the mode does not have. Spectators are
-listed apart, in every mode.
+spectator. No player is ever in a team the mode does not have.
 
 In `SOLO` every player is on team `0`, which gives them its colour and nothing
 else. A client treats every other player as an enemy, whatever the team field
@@ -133,10 +131,10 @@ holds no intel and captures no territory, and in
 [Territory Capture](../protocol075.md#territory-capture) a team of `2` still
 means neutral.
 
-The mode holds for the whole map. It is sent only in step 1 of the
-[Sequence](#sequence), and changes only with the next
-[Map Start](../protocol075.md#map-start-075). A client ignores a Scoreboard Mode
-received at any other time. Every team the mode has is
+The mode holds for the whole map. It is sent only between
+[Map Start](../protocol075.md#map-start-075) and
+[State Data](../protocol075.md#state-data), and a client ignores one received
+at any other time. Every team the mode has is
 [defined](#defined-teams) before it is sent.
 
 ## Sub ID 4: Team Info
@@ -152,13 +150,16 @@ Gives one team its colour, name and shown events.
 | Green         | UByte      | `0`     |                                 |
 | Red           | UByte      | `255`   |                                 |
 | Events        | UByte      | `0`     | Bitmask, see [Team Events](#team-events). |
-| Name          | String     | `"Red"` | NUL-terminated, not empty.      |
+| Name          | String     | `"Red"` | NUL-terminated.                 |
 
 The name is encoded as a [Chat Message](../protocol075.md#chat-message) is: Code
 Page 437, or UTF-8 behind the `0xff` prefix of [UTF-8 Chat](utf-8-chat.md). It
 is not limited to the 10 characters of
-[State Data](../protocol075.md#state-data). A client drops a Team Info with an
-empty name or a Team ID of `255`.
+[State Data](../protocol075.md#state-data), and may be empty. A client drops a
+Team Info with a Team ID of `255`.
+
+Teams may share a colour or a name. Only the mode says whether players are
+teammates; a client does not infer `SOLO` from two teams looking alike.
 
 ### Defined teams
 
@@ -212,9 +213,6 @@ For a player joining during the game, the server sends Listed before the
 [Create Player](../protocol075.md#create-player) that introduces them, so the
 join is quiet. A client always lists its own player.
 
-Where the Extended Spawn Packet extension is also negotiated, a
-player is off the scoreboard if either extension takes them off it.
-
 ## Sub ID 6: Target Score
 
 The score that wins: a team's, or in `SOLO` a player's. One target applies to
@@ -228,8 +226,14 @@ limit applies in CTF and there is no target in TC.
 | Sub Packet ID | UByte      | `6`     | Always `6` for this sub-packet.    |
 | Target        | LE Int     | `10`    | Signed. `0` or less: no target.    |
 
-A team or player reaches the target at a score at or above it. A client shows
-it and never ends the game on it; the server decides the win.
+A team or player reaches the target at a score at or above it. Every score
+starts at `0`, so a target of `0` or less would be reached at once; it means
+there is none instead.
+
+A client shows the target and never ends the game on it. The server decides the
+win and announces it as it does today: the winning flag of
+[Intel Capture](../protocol075.md#intel-capture) in CTF, and its own means, such
+as chat, otherwise. This extension carries no win.
 
 ## Scores
 

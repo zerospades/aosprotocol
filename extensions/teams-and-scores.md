@@ -36,9 +36,9 @@ receives, in this order:
    [Score](#sub-id-0-score) and a [Team Score](#sub-id-1-team-score) for every
    player and team not at `0`.
 
-The server leaves out anything at its default. A client that holds packets back while the map loads
-keeps them in the order they arrived; "before" and "after" above are that
-order. During the game every packet but the Team Count is sent when what it
+The server leaves out anything at its default. A client that holds packets back
+while the map loads keeps them in the order they arrived; "before" and "after"
+above are that order. During the game every packet but the Team Count is sent when what it
 carries changes, and takes effect at once.
 
 ## Sub ID 0: Score
@@ -81,7 +81,7 @@ protocol.
 |-----------|----------------------------------------------------------------------------------|
 | `0`       | `SOLO`: no teams. Every player plays for themselves; the scoreboard is one list. |
 | `1`-`254` | That many teams, `0` to `Teams`-1, each with its players and its score.          |
-| `255`     | Reserved: never sent. A client ignores the packet.                               |
+| `255`     | Reserved for a later version: never sent. A client ignores the packet.           |
 
 The extension supports up to 254 teams, `0` to `253`; `255` stays the
 spectators. A client that negotiates it accepts any Team Count from `0` to
@@ -140,7 +140,8 @@ Every team has a colour, a name and events. Teams `0` and `1` take their colour
 and name from State Data and start with events `0`; a Team Info for either
 overrides them, in whichever order the two arrive, until the next Map Start.
 Every other team of the map gets its Team Info in step 1 of the
-[Sequence](#sequence), before any player can be in it. A server refuses a
+[Sequence](#sequence), before any player can be in it; until it does, a client
+gives it a colour and name of its own choosing and events `0`. A server refuses a
 [Change Team](../protocol075.md#change-team) to a team the map does not have,
 leaving the player where they were.
 
@@ -151,13 +152,12 @@ shows everything.
 
 | Bit | Name            | Hides                                                                                                        |
 |-----|-----------------|--------------------------------------------------------------------------------------------------------------|
-| 0   | `HIDE_PRESENCE` | Join and leave notifications for a player of the team, and team change notifications, see below. |
+| 0   | `HIDE_PRESENCE` | Join and leave notifications for a player of the team, and a team change between two teams that both hide presence. |
 | 1   | `HIDE_KILLFEED` | The kill feed line of a [Kill Action](../protocol075.md#kill-action) whose killer or victim is of the team.  |
 | 2-7 | reserved        | Sent as `0`, ignored by the client.                                                                          |
 
-A team change is hidden only if both the team left and the team joined hide
-presence: moving between a shown and a hidden team, either way, is shown.
-Spectators have no mask and count as shown.
+Moving between a shown and a hidden team, either way, is shown. Spectators have
+no mask and count as shown.
 
 The mask never hides what a client is shown about its own player: its own join,
 kills and deaths are shown whatever its team's mask.
@@ -175,14 +175,14 @@ player is listed.
 | Listed        | UByte      | `0`     | `0` off the scoreboard. Any other value on. |
 
 A player off the scoreboard is left out of it and of any count of players it
-shows, and no
-join, team change or leave notification is shown for them, whatever their
-team's events. Their kills and deaths still reach the kill feed, as their
-team's events allow. They are drawn, heard and hit as any other player, and
-their scores are still sent.
+shows, and no join, team change or leave notification is shown for them,
+whatever their team's [events](#team-events). Their kills and deaths still reach
+the kill feed, as their team's events allow. They are drawn, heard and hit as
+any other player, and their scores are still sent.
 
-Listed hides one player whatever their team; [Team Events](#team-events) hide
-what a whole team does. A notification is shown only if neither hides it.
+Listed is about a player id, not a player the client knows: a client keeps it
+for an id it has not seen yet, which is how step 1 of the
+[Sequence](#sequence) can send it before Existing Player.
 
 For a player joining during the game, the server sends Listed before the
 [Existing Player](../protocol075.md#existing-player) or
@@ -192,9 +192,9 @@ join is quiet. A client always lists its own player.
 ## Sub ID 5: Target Score
 
 The score that wins: a team's, or in `SOLO` a player's. One target applies to
-all of them. It takes precedence over the capture limit in
-[CTF State](../protocol075.md#ctf-state); until the first one, that capture
-limit applies in CTF and there is no target in TC.
+all of them, in place of the capture limit in
+[CTF State](../protocol075.md#ctf-state). Without one, that capture limit
+applies in CTF, and in TC there is no target.
 
 | Field Name    | Field Type | Example | Notes                           |
 |---------------|------------|---------|---------------------------------|

@@ -17,7 +17,7 @@ the scoreboard shows, their colours and names, and who is on it.
 | 1      | Score Table     | Server -> Client | `3+5*teams+5*players`    |
 | 2      | Team Score      | Server -> Client | 7                        |
 | 3      | Scoreboard Mode | Server -> Client | 3                        |
-| 4      | Team Info       | Server -> Client | `7+name`                 |
+| 4      | Team Info       | Server -> Client | `8+name`                 |
 | 5      | Listed          | Server -> Client | 4                        |
 | 6      | Target Score    | Server -> Client | 6                        |
 
@@ -133,7 +133,7 @@ received at any other time. Every team the mode has is
 
 ## Sub ID 4: Team Info
 
-Gives one team its colour and name.
+Gives one team its colour, name and shown events.
 
 | Field Name    | Field Type | Example | Notes                           |
 |---------------|------------|---------|---------------------------------|
@@ -143,6 +143,7 @@ Gives one team its colour and name.
 | Blue          | UByte      | `0`     |                                 |
 | Green         | UByte      | `0`     |                                 |
 | Red           | UByte      | `255`   |                                 |
+| Events        | UByte      | `0`     | Bitmask, see [Team Events](#team-events). |
 | Name          | String     | `"Red"` | NUL-terminated, not empty.      |
 
 The name is encoded as a [Chat Message](../protocol075.md#chat-message) is: Code
@@ -163,6 +164,22 @@ to it, leaving the player where they were.
 
 Teams `0` to `254` can be defined, up to 255. A defined team past the mode's
 last holds no player; it is kept for a later mode.
+
+### Team Events
+
+Which events a client shows about a team's players. A set bit hides them; `0`,
+the default and what teams `0` and `1` have from State Data, shows everything.
+
+| Bit | Name            | Hides                                                                         |
+|-----|-----------------|-------------------------------------------------------------------------------|
+| 0   | `HIDE_PRESENCE` | Join, team change and leave notifications for a player of the team.           |
+| 1   | `HIDE_KILLFEED` | The kill feed line of a [Kill Action](../protocol075.md#kill-action) whose killer or victim is of the team. |
+| 2-7 | reserved        | Sent as `0`, ignored by the client.                                           |
+
+A team change is judged by the team the player joins. The mask never hides
+what a client is shown about its own player: its own join, kills and deaths are
+shown whatever its team's mask. A player [off the scoreboard](#sub-id-5-listed)
+has no presence notifications whatever the mask.
 
 ## Sub ID 5: Listed
 

@@ -40,8 +40,9 @@ receives, in this order:
 3. after State Data: the [Score Table](#sub-id-1-score-table).
 
 A packet of step 1 the server has nothing to say with is left out: a mode of
-`2`, no target, no team past `1`, every player listed. During the game each
-packet is sent when what it carries changes, and takes effect at once.
+`2`, no target, no team past `1`, every player listed. During the game every
+packet but the [Scoreboard Mode](#sub-id-3-scoreboard-mode) is sent when what
+it carries changes, and takes effect at once.
 
 ## Sub ID 0: Score Update
 
@@ -91,7 +92,7 @@ One team's score, in any game mode. It takes precedence over the scores in
 
 ## Sub ID 3: Scoreboard Mode
 
-How many teams the game has. Until the first one, the mode is `2`, the base
+How many teams the map is played with. Without one, the mode is `2`, the base
 protocol's.
 
 | Field Name    | Field Type | Example | Notes                           |
@@ -124,11 +125,11 @@ else. A client treats every other player as an enemy, whatever the team field
 says: no name tag or map marker as a teammate, and its hits are reported as on
 any enemy. Team chat is sent as usual; whom it reaches is the server's choice.
 
-To change the mode, the server keeps every player in a team that exists:
-
-* to add teams: [Team Info](#sub-id-4-team-info) for each new team, then the
-  Scoreboard Mode, then any player moved into them;
-* to remove teams: every player moved out of them, then the Scoreboard Mode.
+The mode holds for the whole map. It is sent only in step 1 of the
+[Sequence](#sequence), and changes only with the next
+[Map Start](../protocol075.md#map-start-075). A client ignores a Scoreboard Mode
+received at any other time. Every team the mode has is
+[defined](#defined-teams) before it is sent.
 
 ## Sub ID 4: Team Info
 

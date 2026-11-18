@@ -949,7 +949,7 @@ registered so far.
 | ID   | Name                                                 | Type          | Description                                                      |
 |------|------------------------------------------------------|---------------|------------------------------------------------------------------|
 | 0    | [Player Properties](extensions/player-properties.md) | `HAS_PACKETS` | Sends additional player attributes from the server to the client |
-| 2    | [Client Key](extensions/client-key.md)               | `HAS_PACKETS` | A client identity that servers can recognise                     |
+| 2    | [Client Key](extensions/client-key.md)               | `HAS_PACKETS` | A client identity servers recognise, and encrypted commands      |
 | 0x20 | [Damage Markers](extensions/damage-markers.md)       | `HAS_PACKETS` | Tells the client how much damage a hit did and who took it       |
 | 48   | [Teamplay](extensions/teamplay.md)                   | `HAS_PACKETS` | The features a team needs to play together                       |
 | 0x32 | [Flashlight](extensions/flashlight.md)               | `HAS_PACKETS` | A light a player carries, switched by the server, seen by all    |

@@ -18,7 +18,7 @@ scoreboard, or to give an admin their rights.
 |--------|-------------|-------------------|--------|
 | 0      | Challenge   | Server -> Client  | 66     |
 | 1      | Response    | Client -> Server  | 136    |
-| 2      | Secure Chat | Client <-> Server | 26 + n |
+| 2      | Secure Chat | Client <-> Server | 22 + n |
 
 ## Keys
 
@@ -38,19 +38,17 @@ its private key is up to it; a key that grants admin rights is best kept in the
 system's key store or behind a passphrase. A client should let the player turn
 the extension off. A client with it turned off does not list it in its ExtInfo.
 
-## Two Levels
+## Admin Keys
 
-A server knows a key in one of two ways, and trusts it accordingly:
+A server may learn a player's key however it likes, for convenience such as
+logging them in again. An admin key is one its operator added by hand, copied
+from the player outside the game, so its login never crosses the network.
 
-| Level  | How the server knows the key                                        | What it gives                                          |
-|--------|---------------------------------------------------------------------|--------------------------------------------------------|
-| Player | However the server likes: linked at `/login`, on first sight, ...   | Convenience: logging in again, a shared scoreboard.    |
-| Admin  | Its operator added it by hand, from the player, outside the game.   | The rights its operator gave it.                       |
-
-An admin key never crosses the network with a password, so its login cannot be
-sniffed. A server accepts the privileged commands of an admin key only through
-[Secure Chat](#sub-id-2-secure-chat); the same commands in a plain
-[Chat Message](../protocol075.md#chat-message) are treated as any player's.
+Which commands are privileged is the server's choice. It accepts the privileged
+commands of an admin key only through [Secure Chat](#sub-id-2-secure-chat); the
+same commands in a plain [Chat Message](../protocol075.md#chat-message) are
+treated as any player's. Admins who log in another way, such as a password, are
+unaffected.
 
 ## Sub ID 0: Challenge
 
@@ -137,30 +135,38 @@ and from it two 32-byte keys with HKDF-SHA256
 | Client to server | `AoS client key 1` followed by ASCII `c2s` |
 | Server to client | `AoS client key 1` followed by ASCII `s2c` |
 
-The server rejects an all-zero shared secret. Both sides forget the keys when
-the connection ends.
+Either side that gets an all-zero shared secret stops: the server does not
+recognise the client, and the client sends no Secure Chat. Both sides forget the
+keys when the connection ends.
 
 ## Sub ID 2: Secure Chat
 
-A [Chat Message](../protocol075.md#chat-message), encrypted. Either side may
-send it once the server has verified a Response.
+A [Chat Message](../protocol075.md#chat-message), encrypted.
+
+Once the server has verified a Response, it sends the client a Secure Chat with
+counter `0`, such as a system message saying they are recognised. The client
+sends Secure Chat only after it has received that one; until then, or if it
+never comes, the client is not recognised.
 
 | Field Name    | Field Type | Example | Notes                                     |
 |---------------|------------|---------|-------------------------------------------|
 | Packet ID     | UByte      | `66`    | Always `66`.                              |
 | Sub Packet ID | UByte      | `2`     | Always `2` for this sub-packet.           |
-| Counter       | LE Uint64  | `0`     | See below.                                |
+| Counter       | LE Uint    | `0`     | See below.                                |
 | Message       | Byte[]     |         | The encrypted message, `n` bytes.         |
 | Tag           | UByte[16]  |         | The authentication tag, ending the packet. |
 
 The plaintext is a Chat Message after its Packet ID: player id, chat type and
-text, with its terminator. The receiver handles it as that Chat Message; the
-server takes the player id to be the sender's, as it does for any chat.
+text, ending with the NUL that clients and servers send. The receiver handles it
+as that Chat Message; the server takes the player id to be the sender's, as it
+does for any chat. The server sends Secure Chat only for what is meant for that
+player alone, such as a command's answer or a private message.
 
 It is encrypted with ChaCha20-Poly1305
 ([RFC 8439](https://www.rfc-editor.org/rfc/rfc8439)), with the key of its
-direction, the counter followed by four zero bytes as the 12-byte nonce, and the
-Packet ID, Sub Packet ID and Counter as additional data.
+direction, the counter followed by eight zero bytes as the 12-byte nonce, and
+the Packet ID, Sub Packet ID and Counter as additional data. A side whose counter
+would wrap past `4294967295` stops sending Secure Chat.
 
 The counter starts at `0` in each direction and goes up by one with every
 message. The receiver drops a message whose counter is not above the last one it

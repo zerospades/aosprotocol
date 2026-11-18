@@ -44,9 +44,10 @@ key is up to it, ideally in the system's key store for an admin key.
 
 The server sends it at most once per connection, after the client's
 [ExtInfo](extension.md#extinfo-packet) lists the extension, so possibly after
-the player has joined. The nonce and the Server Session key are new for every
-connection, from a cryptographically secure random source. A client ignores
-any Challenge after the first.
+the player has joined; it cannot rely on the key before verifying a Response.
+The nonce and the Server Session key are new for every connection, from a
+cryptographically secure random source. A client ignores any Challenge after
+the first.
 
 ## Sub ID 1: Response
 
@@ -79,11 +80,12 @@ IPv4 is the only address family; another needs a new version.
 
 The client answers a Challenge once, or not at all. The server drops a Response
 it did not ask for, a second one, one of the wrong size, one whose address and
-port are not its own, and then one whose signature does not verify. A dropped
-Response leaves the client unrecognised.
+port are not its own, and, checked last, one whose signature does not verify.
+A dropped Response leaves the client unrecognised.
 
 A server's own addresses and ports are those it listens on, its public ones,
 set by its operator or looked up, and those of any relay its operator runs.
+Until a looked-up address is known, it does not count.
 When the port is mapped, the operator sets the one players connect to. It
 accepts a loopback address only from a loopback connection, and a private one
 (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `100.64.0.0/10`,
@@ -126,7 +128,7 @@ that player alone, such as a command's answer.
 
 It is encrypted with ChaCha20-Poly1305
 ([RFC 8439](https://www.rfc-editor.org/rfc/rfc8439)), with the key of its
-direction, the counter and eight zero bytes as the nonce, and the Packet ID, Sub
+direction, the counter followed by eight zero bytes as the nonce, and the Packet ID, Sub
 Packet ID and Counter as additional data. The receiver drops a message whose
 counter is not above the last one it accepted, or whose tag does not verify. A
 side whose counter would wrap stops sending.
@@ -140,10 +142,11 @@ Secure Chat only after receiving it.
 What the server does with a key is its own business. It grants whatever rights
 its operator gave that key. An admin key is one the operator added by hand,
 copied from the player outside the game, so its login never crosses the
-network. The server accepts an admin key's privileged commands, which it
-chooses, only through Secure Chat.
+network. Which commands are privileged is the server's choice; from an admin
+key it accepts them only through Secure Chat. Admins who log in another way are
+unaffected.
 
-Servers run by the same organisation may share keys, admin keys included, so a
+Servers that trust each other, such as one organisation's, may share keys, admin keys included, so a
 player or admin is recognised on all of them. Keys are public, so sharing them
 lets nobody log in.
 

@@ -26,9 +26,10 @@ Turns edit mode on or off for one player.
 | Player ID     | UByte      | `0`     | The player it applies to.       |
 | State         | UByte      | `1`     | `0` off, anything else on.      |
 
-The server sends it to every client, and sends a joining client one for each
-player in edit mode. A player's edit mode is off when it joins, and changes only
-with the next Edit Mode for it.
+The server sends it to every client that negotiated Edit Mode, and sends a
+joining one an Edit Mode for each player in edit mode. A player's edit mode is
+off when they join, and changes only with the next Edit Mode for that player.
+The server judges each block by the edit mode it has already sent.
 
 In edit mode the player:
 
@@ -50,14 +51,19 @@ body's position and orientation.
 
 A spectator in edit mode sends [Block Action](../protocol075.md#block-action)
 `0`, `1` and `2`, [Block Line](../protocol075.md#block-line) and Block Batch,
-under its own player id. Its blocks take its colour from
+under their own player id. Their blocks take their colour from
 [Existing Player](../protocol075.md#existing-player), then from each
-[Set Colour](../protocol075.md#set-colour) it sends, which the server relays.
+[Set Colour](../protocol075.md#set-colour) they send, which the server relays.
+
+A player in edit mode saves the map with
+[`/savemap`](../commands.md#map-and-server): with no name it saves over the map
+being played, and with a name it saves a copy under that name. The server may
+ask them to [`/login`](../commands.md#talking) first.
 
 ## Sub ID 1: Block Batch
 
 Builds or destroys many blocks at once. A player in edit mode sends it, and the
-server sends it to every client, the sender included.
+server sends it to every client that negotiated Edit Mode, the sender included.
 
 | Field Name    | Field Type | Example | Notes                                          |
 |---------------|------------|---------|------------------------------------------------|
@@ -80,8 +86,8 @@ A build takes the player's colour, as with
 alone, as with Block Action `1`.
 
 The server drops the blocks it does not allow, and sends the rest as one Block
-Batch. It drops a batch with a reserved action type whole. A client sends Block
-Batch only in edit mode.
+Batch. It drops a whole batch that has a reserved action type, no blocks, or
+more blocks than it accepts. A client sends Block Batch only in edit mode.
 
 ## Applying blocks
 
@@ -89,11 +95,11 @@ A client that negotiated Edit Mode applies every Block Action, Block Line and
 Block Batch it receives this way, whoever sent it:
 
 * a Block Line is drawn in full, whatever its length;
-* a destroy, `1`, `2` or `3`, removes the blocks it covers at z `62` too, never
-  at z `63`;
-* nothing falls after a destroy by a player in edit mode;
-* after any other destroy, a block stays while solid blocks touching by faces
-  connect it to z `63`, and the others fall.
+* a destroy by a player in edit mode removes the blocks it covers at z `62` too,
+  never at z `63`;
+* while any player is in edit mode, nothing falls;
+* otherwise, after each destroy, a block stays while solid blocks touching by
+  faces connect it to z `63`, and the others fall.
 
 The server never sends a client that did not negotiate Edit Mode a Block Action
 or Block Line that it would apply differently. While any player is in edit mode,

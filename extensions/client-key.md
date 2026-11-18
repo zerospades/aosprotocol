@@ -115,7 +115,7 @@ that supplied it.
 
 A key proves the same client install, not the same person: anyone using the
 player's computer is recognised too. A server may offer a way to unlink a key,
-such as `/logout`. A key alone does not grant admin or moderator rights.
+such as `/logout`. The server grants whatever rights its operator gave that key.
 
 A server may weigh other signs before trusting a key, such as where the
 player's IP address is located, a change of address or network since their last

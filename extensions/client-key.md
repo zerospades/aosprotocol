@@ -49,26 +49,27 @@ from a cryptographically secure random source and is new for every connection.
 |---------------|------------|---------|-----------------------------------|
 | Packet ID     | UByte      | `66`    | Always `66`.                      |
 | Sub Packet ID | UByte      | `1`     | Always `1` for this sub-packet.   |
-| Public Key    | UByte[32]  |         | The client's key for this server. |
+| Public Key    | UByte[32]  |         | The client's key.                 |
 | Signature     | UByte[64]  |         | See below.                        |
 
 The signature is over these 54 bytes:
 
-| Bytes | Content                                                       |
-|-------|---------------------------------------------------------------|
-| 16    | The ASCII text `AoS client key 1`, with no terminator.        |
-| 32    | The nonce.                                                    |
-| 4     | The IPv4 address the client connected to, in network order.  |
-| 2     | The port the client connected to, LE.                         |
+| Field Name | Field Type | Notes                                                    |
+|------------|------------|----------------------------------------------------------|
+| Prefix     | UByte[16]  | The ASCII text `AoS client key 1`, with no terminator.   |
+| Nonce      | UByte[32]  | The nonce from the Challenge.                            |
+| Address    | LE UInt    | The IPv4 address connected to, as in an `aos://` URL.    |
+| Port       | LE UShort  | The port connected to.                                   |
 
 The address is the one the client sent its packets to, after resolving any host
 name. The prefix keeps the signature from being valid for anything else.
 
 The client answers a Challenge once, or not at all. The server drops a Response
 it did not ask for, a second Response, and a Response whose signature does not
-verify for an address the server is reached at; the client is then simply not
-recognised. A server behind NAT or a proxy is told its public address by its
-operator.
+verify for one of its addresses; the client is then simply not recognised. Its
+addresses are every address it listens on, its public address, looked up or
+set by its operator, and the address of any relay its operator runs in front of
+it.
 
 The address stops a server from passing another server's Challenge on to a
 player and logging in there as them: the player signs the address they

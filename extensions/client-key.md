@@ -21,10 +21,9 @@ servers, for example for a shared scoreboard.
 ## Keys
 
 Keys are Ed25519 ([RFC 8032](https://www.rfc-editor.org/rfc/rfc8032)), plain,
-not Ed25519ph or Ed25519ctx. A server verifies strictly, as libsodium's
-`crypto_sign_verify_detached` does: it rejects a signature whose S is not below
-the group order, a key or point that is not canonically encoded, and a public
-key of small order.
+not Ed25519ph or Ed25519ctx. A server verifies strictly: it rejects a signature
+whose S is not below the group order, a key or point that is not canonically
+encoded, and a public key of small order.
 
 A client uses the same key for every server. The key is a public, permanent
 identifier: every server the client answers learns it, and servers can link the
@@ -48,10 +47,9 @@ The server sends it at most once per connection, after the client's
 [ExtInfo](extension.md#extinfo-packet) lists the extension. The nonce comes
 from a cryptographically secure random source and is new for every connection.
 
-ExtInfo, and so the Challenge, can come after the player has joined and
-spawned, so the server cannot rely on the key before it has verified a
-Response. A client ignores a Challenge when it did not list the extension, and
-any Challenge after the first.
+ExtInfo, and so the Challenge, may come after the player has joined, so the
+server cannot rely on the key before it has verified a Response. A client
+ignores any Challenge after the first.
 
 ## Sub ID 1: Response
 
@@ -64,8 +62,8 @@ any Challenge after the first.
 | Port          | LE Ushort  | `77 80`        | The port connected to.            |
 | Signature     | UByte[64]  |                | See below.                        |
 
-The address is the ENet peer address the client connected to, after resolving
-any host name, with the four numbers of `a.b.c.d` in the order `a`, `b`, `c`,
+The address is the one the client sends its packets to, after resolving any
+host name, with the four numbers of `a.b.c.d` in the order `a`, `b`, `c`,
 `d`: `127.0.0.1` is `7F 00 00 01`. The port `32887` is `77 80`.
 
 The signature is over these 54 bytes:
@@ -81,25 +79,27 @@ The prefix keeps the signature from being valid for anything else. IPv4 is the
 only address family; another needs a new version of the extension.
 
 The client answers a Challenge once, or not at all. The server drops a Response
-it did not ask for, a second Response, a Response of the wrong size, a Response
-whose address and port are not its own, and a Response whose signature does not
-verify; the client is then simply not recognised. Its own addresses and ports
-are those it listens on, the public ones set by its operator or looked up, and
-those of any relay its operator runs in front of it. When a router, container
-or relay maps the port, the operator sets the port players connect to. A
-looked-up address is looked up again when it may have changed, and until it is
-known only the other addresses count.
+it did not ask for, a second Response, and a Response of the wrong size. It then
+checks the address and port against its own, and only then the signature. A
+Response that fails either check is dropped, and the client is simply not
+recognised. The server may tell the player in chat whether they were
+recognised.
+
+Its own addresses and ports are those it listens on, the public ones set by its
+operator or looked up, and those of any relay its operator runs in front of it.
+When a router, container or relay maps the port, the operator sets the port
+players connect to. When to look up the public address again is the server's
+choice; until it is known, only the other addresses count.
 
 Many unrelated servers share a private address, so a server accepts a loopback
 address (`127.0.0.0/8`) only from a connection that comes from loopback, and a
 private one (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `100.64.0.0/10`,
-`169.254.0.0/16`) only from a connection that comes from that same network.
+`169.254.0.0/16`) only from a connection whose source address is in the same
+subnet as the server's address that received it.
 
 The address stops a server from passing another server's Challenge on to a
 player and logging in there as them: the player signs the address they
-connected to, which the other server rejects. The server may log a rejected
-address and port, and may tell the player in chat whether they were
-recognised.
+connected to, which the other server rejects.
 
 ## Server Use
 
@@ -115,8 +115,7 @@ that supplied it.
 
 A key proves the same client install, not the same person: anyone using the
 player's computer is recognised too. A server may offer a way to unlink a key,
-such as `/logout`, and should not grant admin or moderator rights from a key
-alone.
+such as `/logout`. A key alone does not grant admin or moderator rights.
 
 As with the rest of the protocol the connection is not encrypted, so someone
 who can read and inject packets can still take over a connection once it is

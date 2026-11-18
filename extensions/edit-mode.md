@@ -60,10 +60,12 @@ receives this way, whoever sent it:
 * after each destroy, a block stays while solid blocks touching by faces
   connect it to z `63`, and the others fall.
 
-While any player is in edit mode, a client that did not negotiate Edit Mode does
-not play. The server disconnects it, or makes it a spectator and sends it no
-Block Action or Block Line, and may tell it in chat to update. Its map no longer
-matches, so it stays out until it joins again or the next
-[Map Start](../protocol075.md#map-start-075), even if edit mode ends first.
+The server never sends a client that did not negotiate Edit Mode a Block Action
+or Block Line that it would apply differently. While any player is in edit mode,
+such a client does not play. The server disconnects it, or makes it a spectator
+and sends it no Block Action or Block Line, and may tell it in chat to update.
+Once it misses one, its map no longer matches, so it stays out until it joins
+again or the next [Map Start](../protocol075.md#map-start-075), even if edit mode
+ends first.
 
 See [Extensions](extension.md) for how the extension is negotiated.

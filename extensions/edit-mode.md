@@ -63,6 +63,7 @@ receives this way, whoever sent it:
 While any player is in edit mode, a client that did not negotiate Edit Mode does
 not play. The server disconnects it, or makes it a spectator and sends it no
 Block Action or Block Line, and may tell it in chat to update. Its map no longer
-matches, so it stays out until the next [Map Start](../protocol075.md#map-start-075).
+matches, so it stays out until it joins again or the next
+[Map Start](../protocol075.md#map-start-075), even if edit mode ends first.
 
 See [Extensions](extension.md) for how the extension is negotiated.

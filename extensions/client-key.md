@@ -117,6 +117,11 @@ A key proves the same client install, not the same person: anyone using the
 player's computer is recognised too. A server may offer a way to unlink a key,
 such as `/logout`. A key alone does not grant admin or moderator rights.
 
+A server may weigh other signs before trusting a key, such as where the
+player's IP address is located, a change of address or network since their last
+connection, or a long absence. When something looks wrong, it ignores the key
+for that connection and asks the player to log in again.
+
 As with the rest of the protocol the connection is not encrypted, so someone
 who can read and inject packets can still take over a connection once it is
 recognised. Unlike a password typed in chat, no secret is ever sent.

@@ -24,25 +24,34 @@ Turns edit mode on or off for the receiving client's own player.
 | Sub Packet ID | UByte      | `0`     | Always `0` for this sub-packet. |
 | State         | UByte      | `1`     | `0` off, anything else on.      |
 
+Edit mode is off when a client joins, and changes only with the next Edit Mode.
+
 In edit mode the player:
 
 * never runs out of blocks, and a [Block Line](../protocol075.md#block-line) may
   be any length;
-* may build and destroy at any distance they can aim at;
+* may build and destroy at any distance;
+* may build at z `62`, on the water;
 * has no delay between two builds or two spade hits;
-* may build and destroy as a spectator, from the camera position.
+* may build and destroy as a spectator.
 
-The map bounds, the water level and the need for a neighbouring block still
-apply. The server still checks every block, and drops those it does not allow.
-Edit mode lasts until the next Edit Mode.
+The client offers these to the player, and the server accepts them. A block
+still needs a solid block on one of its six faces, z `63` cannot change, and the
+server still drops any block it does not allow.
 
-A spectator builds with [Block Action](../protocol075.md#block-action) and
-[Block Line](../protocol075.md#block-line) under its own player id, in the colour
-of its last [Set Colour](../protocol075.md#set-colour), which the server
+The client may also let the player leave their body and fly the camera freely,
+and return to it at any time. This is client side only: the server sees the
+player where the body is, and the player builds and destroys from the camera.
+
+A spectator builds with [Block Action](../protocol075.md#block-action) build,
+bullet destroy and spade destroy, and with
+[Block Line](../protocol075.md#block-line), under its own player id. Its blocks
+take its colour from [Existing Player](../protocol075.md#existing-player), then
+from each [Set Colour](../protocol075.md#set-colour) it sends, which the server
 relays. Every client applies them like any other player's.
 
-A client draws at most 50 blocks of a received Block Line. The server sends a
-longer line to the other clients as [Block Action](../protocol075.md#block-action)
-builds, one per block of the line.
+A client that negotiated Edit Mode draws a received Block Line in full, whatever
+its length. Other clients may draw only part of a long line, so the server sends
+them a longer line as Block Action builds, one per block of the line.
 
 See [Extensions](extension.md) for how the extension is negotiated.

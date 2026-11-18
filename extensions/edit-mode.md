@@ -31,13 +31,14 @@ In edit mode the player:
 * never runs out of blocks, and a [Block Line](../protocol075.md#block-line) may
   be any length;
 * may build and destroy at any distance;
-* may build at z `62`, on the water;
+* may build and destroy at z `62`, on the water;
 * has no delay between two builds or two spade hits;
 * may build and destroy as a spectator.
 
 The client offers these to the player, and the server accepts them. A block
 still needs a solid block on one of its six faces, z `63` cannot change, and the
-server still drops any block it does not allow.
+server still drops any block it does not allow. Blocks at z `62` and `63` hold up
+the blocks above them, as before.
 
 The client may also let the player leave their body and fly the camera freely,
 and return to it at any time. This is client side only: the server sees the

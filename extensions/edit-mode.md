@@ -10,9 +10,10 @@ Lifts the client's building limits, for map editing and creative servers.
 
 ### Sub Packets:
 
-| Sub ID | Name      | Direction        | Size |
-|--------|-----------|------------------|------|
-| 0      | Edit Mode | Server -> Client | 3    |
+| Sub ID | Name        | Direction         | Size     |
+|--------|-------------|-------------------|----------|
+| 0      | Edit Mode   | Server -> Client  | 3        |
+| 1      | Block Batch | Client <-> Server | 3 + 13 n |
 
 ## Sub ID 0: Edit Mode
 
@@ -49,16 +50,46 @@ player id. Its blocks take its colour from
 [Existing Player](../protocol075.md#existing-player), then from each
 [Set Colour](../protocol075.md#set-colour) it sends, which the server relays.
 
+## Sub ID 1: Block Batch
+
+Builds and destroys many blocks at once. A player in edit mode sends it, and the
+server sends it to every client, the sender included.
+
+| Field Name    | Field Type | Example | Notes                                            |
+|---------------|------------|---------|--------------------------------------------------|
+| Packet ID     | UByte      | `0x76`  | Always `0x76`.                                   |
+| Sub Packet ID | UByte      | `1`     | Always `1` for this sub-packet.                  |
+| Player ID     | UByte      | `0`     | The player who sent it. Ignored by the server.   |
+| Blocks        | Block[]    |         | To the end of the packet.                        |
+
+Each Block is:
+
+| Field Name  | Field Type | Example | Notes                                    |
+|-------------|------------|---------|------------------------------------------|
+| Action type | UByte      | `0`     | `0` build, `1` destroy, others reserved. |
+| X position  | LE Int     | `0`     |                                          |
+| Y position  | LE Int     | `0`     |                                          |
+| Z position  | LE Int     | `0`     |                                          |
+
+A build takes the player's colour, as with
+[Block Action](../protocol075.md#block-action) `0`. A destroy removes that one
+block, as with Block Action `1`. The blocks apply in order, and blocks fall only
+once the whole batch is applied.
+
+The server drops the blocks it does not allow, and sends the rest as one Block
+Batch. It drops a batch with a reserved action type whole. A client sends Block
+Batch only in edit mode.
+
 ## Applying blocks
 
-A client that negotiated Edit Mode applies every Block Action and Block Line it
-receives this way, whoever sent it:
+A client that negotiated Edit Mode applies every Block Action, Block Line and
+Block Batch it receives this way, whoever sent it:
 
 * a Block Line is drawn in full, whatever its length;
 * a destroy, `1`, `2` or `3`, removes the blocks it covers at z `62` too, never
   at z `63`;
-* after each destroy, a block stays while solid blocks touching by faces
-  connect it to z `63`, and the others fall.
+* after each destroy or Block Batch, a block stays while solid blocks touching
+  by faces connect it to z `63`, and the others fall.
 
 The server never sends a client that did not negotiate Edit Mode a Block Action
 or Block Line that it would apply differently. While any player is in edit mode,

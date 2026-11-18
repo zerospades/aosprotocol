@@ -90,6 +90,11 @@ or relay maps the port, the operator sets the port players connect to. A
 looked-up address is looked up again when it may have changed, and until it is
 known only the other addresses count.
 
+Many unrelated servers share a private address, so a server accepts a loopback
+address (`127.0.0.0/8`) only from a connection that comes from loopback, and a
+private one (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `100.64.0.0/10`,
+`169.254.0.0/16`) only from a connection that comes from that same network.
+
 The address stops a server from passing another server's Challenge on to a
 player and logging in there as them: the player signs the address they
 connected to, which the other server rejects. The server may log a rejected

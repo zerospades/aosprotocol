@@ -55,10 +55,8 @@ under their own player id. Their blocks take their colour from
 [Existing Player](../protocol075.md#existing-player), then from each
 [Set Colour](../protocol075.md#set-colour) they send, which the server relays.
 
-A player in edit mode saves the map with
-[`/savemap`](../commands.md#map-and-server): with no name it saves over the map
-being played, and with a name it saves a copy under that name. The server may
-ask them to [`/login`](../commands.md#talking) first.
+The map is saved with the existing [`/savemap`](../commands.md#map-and-server)
+command.
 
 ## Sub ID 1: Block Batch
 

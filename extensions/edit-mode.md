@@ -31,7 +31,7 @@ In edit mode the player:
 * never runs out of blocks, and a [Block Line](../protocol075.md#block-line) may
   be any length;
 * may build and destroy at any distance;
-* may build and destroy at z `62`, on the water;
+* may build and destroy at z `62`, just above the water;
 * has no delay between two builds or two spade hits;
 * may build and destroy as a spectator.
 
@@ -43,11 +43,11 @@ and return to it at any time. This is client side only. While flying, the player
 only builds and destroys, from the camera, and the client keeps sending the
 body's position and orientation.
 
-A spectator sends [Block Action](../protocol075.md#block-action) `0`, `1` and
-`2`, and [Block Line](../protocol075.md#block-line), under its own player id. Its
-blocks take its colour from [Existing Player](../protocol075.md#existing-player),
-then from each [Set Colour](../protocol075.md#set-colour) it sends, which the
-server relays.
+A spectator in edit mode sends [Block Action](../protocol075.md#block-action)
+`0`, `1` and `2`, and [Block Line](../protocol075.md#block-line), under its own
+player id. Its blocks take its colour from
+[Existing Player](../protocol075.md#existing-player), then from each
+[Set Colour](../protocol075.md#set-colour) it sends, which the server relays.
 
 ## Applying blocks
 
@@ -57,8 +57,8 @@ receives this way, whoever sent it:
 * a Block Line is drawn in full, whatever its length;
 * a destroy, `1`, `2` or `3`, removes the blocks it covers at z `62` too, never
   at z `63`;
-* a block stays while solid blocks touching by faces connect it to z `63`, and
-  the others fall.
+* after each destroy, a block stays while solid blocks touching by faces
+  connect it to z `63`, and the others fall.
 
 While any player is in edit mode, a client that did not negotiate Edit Mode does
 not play. The server disconnects it, or makes it a spectator and sends it no

@@ -16,20 +16,25 @@ servers, for example for a shared scoreboard.
 | Sub ID | Name      | Direction        | Size |
 |--------|-----------|------------------|------|
 | 0      | Challenge | Server -> Client | 34   |
-| 1      | Response  | Client -> Server | 98   |
+| 1      | Response  | Client -> Server | 104  |
 
 ## Keys
 
-Keys are Ed25519 ([RFC 8032](https://www.rfc-editor.org/rfc/rfc8032)).
+Keys are Ed25519 ([RFC 8032](https://www.rfc-editor.org/rfc/rfc8032)), plain,
+not Ed25519ph or Ed25519ctx. A server verifies strictly, as libsodium's
+`crypto_sign_verify_detached` does: it rejects a signature whose S is not below
+the group order, a key or point that is not canonically encoded, and a public
+key of small order.
 
-A client uses the same key for every server, so every server sees the same
-public key. A client may instead use a different key for some or all servers;
-those servers then cannot tell it is the same player, and nothing shared
-between servers, such as a scoreboard, follows it.
+A client uses the same key for every server. The key is a public, permanent
+identifier: every server the client answers learns it, and servers can link the
+player across the whole server list. A client may use a different key for some
+or all servers; those servers then cannot tell it is the same player, and
+nothing shared between servers, such as a scoreboard, follows it.
 
 How the client makes and stores its key is up to it. A client should let the
-player turn the extension off. A client with it turned off does not answer a
-Challenge.
+player turn the extension off. A client with it turned off does not list it in
+its ExtInfo.
 
 ## Sub ID 0: Challenge
 
@@ -43,54 +48,70 @@ The server sends it at most once per connection, after the client's
 [ExtInfo](extension.md#extinfo-packet) lists the extension. The nonce comes
 from a cryptographically secure random source and is new for every connection.
 
+ExtInfo, and so the Challenge, can come after the player has joined and
+spawned, so the server cannot rely on the key before it has verified a
+Response. A client ignores a Challenge when it did not list the extension, and
+any Challenge after the first.
+
 ## Sub ID 1: Response
 
-| Field Name    | Field Type | Example | Notes                             |
-|---------------|------------|---------|-----------------------------------|
-| Packet ID     | UByte      | `66`    | Always `66`.                      |
-| Sub Packet ID | UByte      | `1`     | Always `1` for this sub-packet.   |
-| Public Key    | UByte[32]  |         | The client's key.                 |
-| Signature     | UByte[64]  |         | See below.                        |
+| Field Name    | Field Type | Example        | Notes                             |
+|---------------|------------|----------------|-----------------------------------|
+| Packet ID     | UByte      | `66`           | Always `66`.                      |
+| Sub Packet ID | UByte      | `1`            | Always `1` for this sub-packet.   |
+| Public Key    | UByte[32]  |                | The client's key.                 |
+| Address       | UByte[4]   | `7F 00 00 01`  | The IPv4 address connected to.    |
+| Port          | LE Ushort  | `77 80`        | The port connected to.            |
+| Signature     | UByte[64]  |                | See below.                        |
+
+The address is the ENet peer address the client connected to, after resolving
+any host name, with the four numbers of `a.b.c.d` in the order `a`, `b`, `c`,
+`d`: `127.0.0.1` is `7F 00 00 01`. The port `32887` is `77 80`.
 
 The signature is over these 54 bytes:
 
-| Field Name | Field Type | Notes                                                    |
-|------------|------------|----------------------------------------------------------|
-| Prefix     | UByte[16]  | The ASCII text `AoS client key 1`, with no terminator.   |
-| Nonce      | UByte[32]  | The nonce from the Challenge.                            |
-| Address    | LE UInt    | The IPv4 address connected to, as in an `aos://` URL.    |
-| Port       | LE UShort  | The port connected to.                                   |
+| Field Name | Field Type | Notes                                                  |
+|------------|------------|--------------------------------------------------------|
+| Prefix     | UByte[16]  | The ASCII text `AoS client key 1`, with no terminator. |
+| Nonce      | UByte[32]  | The nonce from the Challenge.                          |
+| Address    | UByte[4]   | As in the Response.                                    |
+| Port       | LE Ushort  | As in the Response.                                    |
 
-The address is the one the client sent its packets to, after resolving any host
-name. The prefix keeps the signature from being valid for anything else.
+The prefix keeps the signature from being valid for anything else. IPv4 is the
+only address family; another needs a new version of the extension.
 
 The client answers a Challenge once, or not at all. The server drops a Response
-it did not ask for, a second Response, and a Response whose signature does not
-verify for one of its addresses; the client is then simply not recognised. Its
-addresses are every address it listens on, its public address, looked up or
-set by its operator, and the address of any relay its operator runs in front of
-it.
+it did not ask for, a second Response, a Response of the wrong size, a Response
+whose address and port are not its own, and a Response whose signature does not
+verify; the client is then simply not recognised. Its own addresses and ports
+are those it listens on, the public ones set by its operator or looked up, and
+those of any relay its operator runs in front of it. When a router, container
+or relay maps the port, the operator sets the port players connect to. A
+looked-up address is looked up again when it may have changed, and until it is
+known only the other addresses count.
 
 The address stops a server from passing another server's Challenge on to a
 player and logging in there as them: the player signs the address they
-connected to, which the other server rejects.
+connected to, which the other server rejects. The server may log a rejected
+address and port, and may tell the player in chat whether they were
+recognised.
 
 ## Server Use
 
-What the server does with the key is its own business. The usual flow:
-
-1. The key is linked to an account: the player is logged in to it.
-2. The key is unknown: nothing happens. When the player later logs in, with
-   whatever the server uses (`/login`, `/register`, ...), the server links the
-   key to that account.
+What the server does with a key is its own business; usually it links the key
+to an account when the player logs in, and logs them in to it on later
+connections. When the same key is on two connections at once, the server
+decides which, if any, is recognised.
 
 Servers may share public keys with each other, to recognise the same player
-across servers. A public key lets nobody log in, so a leaked or shared list of
-keys is safe.
+across servers. A list of keys cannot be used to log in, but it still links
+players across servers, and shared data is only as trustworthy as the server
+that supplied it.
 
 A key proves the same client install, not the same person: anyone using the
 player's computer is recognised too. A server may offer a way to unlink a key,
-such as `/logout`, and may refuse to grant admin rights from a key alone.
+such as `/logout`, and should not grant admin or moderator rights from a key
+alone.
 
 As with the rest of the protocol the connection is not encrypted, so someone
 who can read and inject packets can still take over a connection once it is

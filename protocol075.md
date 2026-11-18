@@ -113,6 +113,7 @@ The following shorthands are used in this document:
 | UByte        | Unisgned 8 bit number                                   |
 | LE Float     | 32bit IEEE float                                        |
 | LE Uint      | 32bit unsigned integer                                  |
+| LE Ushort    | 16bit unsigned integer                                  |
 | CP437 String | String encoded with CP437. Usually fixed-length.        |
 
 ## Position Data

@@ -6,6 +6,12 @@ developing the AoS protocol in the future.
 
 Browse the documentation at https://www.piqueserver.org/aosprotocol, or just read through the git repository instead.
 
+## Other references
+
+* [AoS 0.75.015 Canon Client Doc](https://notaburner.mooo.com/assets/clidoc_draft.html)
+  by not a burner (CC0): how a client should behave, packet by packet, with the
+  conventions, character sets and world rules a client needs.
+
 ## Implementations
 Active means a commit in the last twelve months, as of September 2026.
 

@@ -4,7 +4,9 @@ Extensions allow adding new packets to the 0.75 protocol as well as querying the
 support for client and server functionality. This page describes how extensions
 are identified and negotiated; each extension itself is specified in its own file
 in this folder, and the registry of ids lives in the
-[0.75 documentation](../protocol075.md#extensions).
+[0.75 documentation](../protocol075.md#extensions). The conventions they share, for
+strings, numbers, reserved values and validation, are in the
+[Standard](../standard.md).
 
 ## Extension IDs
 
